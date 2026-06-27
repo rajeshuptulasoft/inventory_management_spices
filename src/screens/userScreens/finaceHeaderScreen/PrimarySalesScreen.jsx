@@ -20,6 +20,15 @@ import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
+import {
+    buildUrl,
+    GETNETWORK,
+    POSTNETWORK,
+    extractApiList,
+    getApiMessage,
+    isApiSuccess,
+    mapSalesOrderRow,
+} from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
 const CARD_BG = "#FFFFFF";
@@ -32,7 +41,21 @@ const GREEN = "#16A34A";
 const RED = "#DC2626";
 const AMBER = "#D97706";
 
-const INITIAL_SALES = [];
+const mapOrderRow = (row) => {
+    const mapped = mapSalesOrderRow(row);
+    return {
+        id: mapped.id,
+        orderId: mapped.orderId,
+        customer: mapped.distributor,
+        type: row.order_type || row.type || "Primary",
+        amount: mapped.amount,
+        status: mapped.status,
+        partyId: mapped.distributorId,
+        channel: row.channel || "",
+        orderDate: mapped.date,
+        payment: row.payment_mode || row.mode || "Credit",
+    };
+};
 
 const FormField = ({ label, required, children }) => (
     <View style={styles.formField}>
@@ -243,11 +266,40 @@ const SalesCard = ({ item, onView, onEdit }) => (
 
 const PrimarySalesScreen = () => {
     const navigation = useFinanceNavigation();
-    const [sales, setSales] = useState(INITIAL_SALES);
+    const [sales, setSales] = useState([]);
     const [search, setSearch] = useState("");
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [showAddModal, setShowAddModal] = useState(false);
+
+    const fetchSales = useCallback(async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+        try {
+            const res = await GETNETWORK(buildUrl("fmcg/sales-orders", "limit=100"), true);
+            if (!isApiSuccess(res)) {
+                setLoadError(getApiMessage(res, "Failed to load sales orders"));
+                setSales([]);
+                return;
+            }
+            const rows = extractApiList(res)
+                .map(mapOrderRow)
+                .filter((item) => String(item.type).toLowerCase().includes("primary"));
+            setSales(rows);
+            setLoadError("");
+        } catch {
+            setLoadError("Failed to load sales orders");
+            setSales([]);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchSales();
+    }, [fetchSales]);
 
     const handleBack = useCallback(() => {
         if (showAddModal) {
@@ -274,19 +326,9 @@ const PrimarySalesScreen = () => {
         return () => subscription.remove();
     }, [navigation, showAddModal]);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 800);
-        return () => clearTimeout(timer);
-    }, []);
-
     const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        setLoading(true);
-        setTimeout(() => {
-            setRefreshing(false);
-            setLoading(false);
-        }, 1000);
-    }, []);
+        fetchSales(true);
+    }, [fetchSales]);
 
     const filteredSales = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -299,20 +341,22 @@ const PrimarySalesScreen = () => {
         );
     }, [search, sales]);
 
-    const handleSaveOrder = (form) => {
-        const newSale = {
-            id: String(Date.now()),
-            orderId: form.orderNo,
-            customer: `Party #${form.partyId}`,
-            type: form.type,
-            amount: "₹0",
-            status: "Pending",
-            channel: form.channel,
-            orderDate: form.orderDate,
-            payment: form.payment,
-        };
-        setSales((prev) => [...prev, newSale]);
+    const handleSaveOrder = async (form) => {
+        const res = await POSTNETWORK(
+            buildUrl("fmcg/sales-orders"),
+            {
+                distributorId: Number(form.partyId),
+                items: [],
+                notes: form.orderNo || undefined,
+            },
+            true
+        );
+        if (!isApiSuccess(res)) {
+            Alert.alert("Error", getApiMessage(res, "Create failed"));
+            return;
+        }
         setShowAddModal(false);
+        fetchSales(true);
     };
 
     const handleView = (item) => {
@@ -342,7 +386,11 @@ const PrimarySalesScreen = () => {
                     </View>
                 </View>
                 <Text style={styles.summaryValue}>{sales.length}</Text>
-                {loading ? <Text style={styles.summaryLoading}>→ Loading...</Text> : null}
+                {loading || loadError ? (
+                    <Text style={styles.summaryLoading}>
+                        {loading ? "→ Loading..." : `→ ${loadError}`}
+                    </Text>
+                ) : null}
             </View>
 
             <View style={styles.listSection}>

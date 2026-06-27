@@ -1,1 +1,1 @@
-export const BASE_URL=`https://uptula.com/api/`;
+export const BASE_URL=`https://yubi.co.in/spice_inventory/api/`;

@@ -6,7 +6,7 @@ import { store } from "../redux/store";
 import LoginNavigation from "./LoginNavigation";
 import AuthNavigation from "./AuthNavigation";
 import { navigationRef } from "./NavigationService";
-import { LanguageProvider } from "../i18n/LanguageProvider";
+import { requestAppPermissions } from "../utils/AppPermissions";
 
 const AppNavigator = () => {
   const dispatch = useDispatch();
@@ -16,17 +16,19 @@ const AppNavigator = () => {
     dispatch(checkuserToken());
   }, [dispatch]);
 
+  useEffect(() => {
+    requestAppPermissions();
+  }, []);
+
   return authStatus ? <AuthNavigation /> : <LoginNavigation />;
 };
 
 const Navigation = () => {
   return (
     <Provider store={store}>
-      <LanguageProvider>
-        <NavigationContainer ref={navigationRef}>
-          <AppNavigator />
-        </NavigationContainer>
-      </LanguageProvider>
+      <NavigationContainer ref={navigationRef}>
+        <AppNavigator />
+      </NavigationContainer>
     </Provider>
   );
 };

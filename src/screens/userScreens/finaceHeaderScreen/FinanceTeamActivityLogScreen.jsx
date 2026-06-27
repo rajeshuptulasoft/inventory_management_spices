@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -12,6 +12,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import FinanceHeader from "../../../components/commonComponents/FinanceHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
+import { getObjByKey } from "../../../utils/Storage";
+import {
+    buildUrl,
+    GETNETWORK,
+    extractApiList,
+    isApiSuccess,
+} from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR } from "../../../constant/color";
 
@@ -25,55 +32,27 @@ const PRIMARY_BLUE = "#2563EB";
 const GREEN = "#16A34A";
 const AMBER = "#D97706";
 
-const SUMMARY_DATA = [
-    {
-        id: "1",
-        label: "TOTAL USERS",
-        value: "0",
-        footer: "Active accounts",
-        icon: "👥",
-        iconBg: "#DBEAFE",
-    },
-    {
-        id: "2",
-        label: "TODAY'S LOGINS",
-        value: "1",
-        footer: "1 Unique sessions",
-        footerHighlight: true,
-        icon: "🔒",
-        iconBg: "#DCFCE7",
-    },
-    {
-        id: "3",
-        label: "PRODUCTION ACTIONS",
-        value: "0",
-        footer: "Batches, QC, Store",
-        icon: "🏭",
-        iconBg: "#EDE9FE",
-    },
-    {
-        id: "4",
-        label: "TOTAL ACTIONS",
-        value: "1",
-        footer: "All modules",
-        icon: "📚",
-        iconBg: "#F3F4F6",
-    },
-];
-
-const ACTIVITY_TRAIL = [
-    {
-        id: "1",
-        time: "24/6/2024, 6:12:50 pm",
-        userName: "Rajesh Sahoo",
-        userInitials: "RS",
-        userId: "24",
-        role: "Finance Head",
-        action: "Logged In",
-        module: "Auth",
-        details: "Rajesh Sahoo logged in via API",
-    },
-];
+const mapNotificationToTrail = (row) => {
+    const name = row.user_name || row.title || "System";
+    const parts = name.split(" ").filter(Boolean);
+    const initials =
+        parts.length >= 2
+            ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+            : name.slice(0, 2).toUpperCase();
+    return {
+        id: String(row.id),
+        time: row.created_at
+            ? new Date(row.created_at).toLocaleString("en-IN")
+            : row.time || "",
+        userName: name,
+        userInitials: initials,
+        userId: String(row.user_id ?? row.id ?? ""),
+        role: row.role || "User",
+        action: row.title || row.type || "Notification",
+        module: row.module || row.category || "System",
+        details: row.message || row.body || row.description || "",
+    };
+};
 
 const SummaryCard = ({ item, cardWidth }) => (
     <View style={[styles.summaryCard, { width: cardWidth }]}>
@@ -126,27 +105,87 @@ const FinanceTeamActivityLogScreen = () => {
     const { width } = useWindowDimensions();
     const [search, setSearch] = useState("");
     const [refreshing, setRefreshing] = useState(false);
+    const [summaryData, setSummaryData] = useState([]);
+    const [activityTrail, setActivityTrail] = useState([]);
+    const [loggedInName, setLoggedInName] = useState("");
+    const [userCount, setUserCount] = useState(0);
 
     const horizontalPadding = 16;
     const gap = 10;
     const cardWidth = (width - horizontalPadding * 2 - gap) / 2;
 
-    const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1000);
+    const loadData = useCallback(async () => {
+        const session = await getObjByKey("loginResponse");
+        setLoggedInName(session?.name || session?.email || "");
+
+        const [usersRes, notificationsRes] = await Promise.all([
+            GETNETWORK(buildUrl("users", "limit=200"), true),
+            GETNETWORK(buildUrl("notifications", "limit=50"), true),
+        ]);
+
+        const users = isApiSuccess(usersRes) ? extractApiList(usersRes) : [];
+        const notifications = isApiSuccess(notificationsRes) ? extractApiList(notificationsRes) : [];
+
+        setUserCount(users.length);
+        setSummaryData([
+            {
+                id: "1",
+                label: "TOTAL USERS",
+                value: String(users.length),
+                footer: "Active accounts",
+                icon: "👥",
+                iconBg: "#DBEAFE",
+            },
+            {
+                id: "2",
+                label: "NOTIFICATIONS",
+                value: String(notifications.length),
+                footer: "Recent system events",
+                footerHighlight: true,
+                icon: "🔒",
+                iconBg: "#DCFCE7",
+            },
+            {
+                id: "3",
+                label: "UNREAD",
+                value: String(notifications.filter((n) => !n.is_read).length),
+                footer: "Pending alerts",
+                icon: "🏭",
+                iconBg: "#EDE9FE",
+            },
+            {
+                id: "4",
+                label: "TOTAL ACTIONS",
+                value: String(notifications.length),
+                footer: "All modules",
+                icon: "📚",
+                iconBg: "#F3F4F6",
+            },
+        ]);
+        setActivityTrail(notifications.map(mapNotificationToTrail));
     }, []);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    }, [loadData]);
 
     const filteredTrail = useMemo(() => {
         const query = search.trim().toLowerCase();
-        if (!query) return ACTIVITY_TRAIL;
-        return ACTIVITY_TRAIL.filter(
+        if (!query) return activityTrail;
+        return activityTrail.filter(
             (item) =>
                 item.userName.toLowerCase().includes(query) ||
                 item.action.toLowerCase().includes(query) ||
                 item.module.toLowerCase().includes(query) ||
                 item.details.toLowerCase().includes(query)
         );
-    }, [search]);
+    }, [search, activityTrail]);
 
     const listHeader = (
         <View>
@@ -159,12 +198,12 @@ const FinanceTeamActivityLogScreen = () => {
                 </View>
                 <Text style={styles.loggedInText}>
                     Logged in as:{"\n"}
-                    <Text style={styles.loggedInName}>Rajesh Sahoo (Finance Head)</Text>
+                    <Text style={styles.loggedInName}>{loggedInName || "—"}</Text>
                 </Text>
             </View>
 
             <View style={styles.summaryGrid}>
-                {SUMMARY_DATA.map((item) => (
+                {summaryData.map((item) => (
                     <SummaryCard key={item.id} item={item} cardWidth={cardWidth} />
                 ))}
             </View>
@@ -175,7 +214,7 @@ const FinanceTeamActivityLogScreen = () => {
             </View>
 
             <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>All Registered Users (0)</Text>
+                <Text style={styles.sectionTitle}>All Registered Users ({userCount})</Text>
                 <View style={styles.filterRow}>
                     <TouchableOpacity style={styles.filterPill} activeOpacity={0.85}>
                         <Text style={styles.filterText}>All Roles</Text>
@@ -186,9 +225,11 @@ const FinanceTeamActivityLogScreen = () => {
                         <Text style={styles.filterChevron}>▾</Text>
                     </TouchableOpacity>
                 </View>
-                <Text style={styles.entriesText}>1 entries</Text>
+                <Text style={styles.entriesText}>{userCount} entries</Text>
                 <View style={styles.emptyTable}>
-                    <Text style={styles.emptyTableText}>No registered users to display</Text>
+                    <Text style={styles.emptyTableText}>
+                        {userCount ? `${userCount} users loaded from API` : "No registered users to display"}
+                    </Text>
                 </View>
             </View>
 

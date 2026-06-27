@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+  }
+  html.dark body,
+  body.dark {
+    @apply bg-slate-950 text-slate-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white px-4 py-2 rounded-xl font-medium transition shadow-lg shadow-orange-500/25 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-medium transition shadow-sm;
+  }
+  html.dark .btn-secondary,
+  .dark .btn-secondary {
+    @apply bg-white/10 hover:bg-white/20 border-white/10 text-gray-200 shadow-none;
+  }
+
+  .card {
+    @apply bg-white rounded-xl border border-slate-200 p-6 shadow-sm;
+  }
+  html.dark .card,
+  .dark .card {
+    @apply bg-transparent border-white/10 shadow-none;
+  }
+
+  .glass-card,
+  .dashboard-panel {
+    @apply bg-white border border-slate-200/90 shadow-sm;
+  }
+  html.dark .glass-card,
+  html.dark .dashboard-panel,
+  .dark .glass-card,
+  .dark .dashboard-panel {
+    @apply bg-slate-800/90 border-slate-700 shadow-xl;
+  }
+
+  .app-shell {
+    @apply bg-gradient-to-br from-slate-50 via-orange-50/30 to-amber-50/20;
+  }
+  html.dark .app-shell,
+  .dark .app-shell {
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  }
+
+  .app-sidebar {
+    @apply bg-white border-r border-slate-200 shadow-sm;
+  }
+  html.dark .app-sidebar,
+  .dark .app-sidebar {
+    @apply bg-slate-900/95 border-slate-800 shadow-none;
+  }
+
+  .app-header {
+    @apply bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm;
+  }
+  html.dark .app-header,
+  .dark .app-header {
+    @apply bg-slate-900/90 border-slate-800 shadow-none;
+  }
+
+  .app-header h2 {
+    @apply text-slate-800;
+  }
+  html.dark .app-header h2,
+  .dark .app-header h2 {
+    @apply text-white;
+  }
+
+  .dashboard-hero h1 {
+    @apply text-slate-800;
+  }
+  html.dark .dashboard-hero h1,
+  .dark .dashboard-hero h1 {
+    @apply text-white;
+  }
+  .dashboard-hero p {
+    @apply text-slate-500;
+  }
+  html.dark .dashboard-hero p,
+  .dark .dashboard-hero p {
+    @apply text-slate-400;
+  }
+
+  /* Modal */
+  .modal-panel {
+    @apply rounded-2xl border p-6 shadow-2xl;
+    background: rgba(255, 255, 255, 0.98);
+    @apply border-slate-200;
+  }
+  html.dark .modal-panel,
+  .dark .modal-panel {
+    background: rgba(30, 41, 59, 0.96);
+    @apply border-slate-600;
+    backdrop-filter: blur(20px);
+  }
+  .modal-panel h2 {
+    @apply text-slate-900;
+  }
+  html.dark .modal-panel h2,
+  .dark .modal-panel h2 {
+    @apply text-white;
+  }
+  .modal-body {
+    @apply text-slate-700;
+  }
+  html.dark .modal-body,
+  .dark .modal-body {
+    @apply text-slate-200;
+  }
+
+  /* Inputs — light default */
+  .input-field,
+  select.input-field,
+  textarea.input-field {
+    @apply w-full rounded-xl px-3 py-2.5 outline-none transition;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+  }
+  .input-field::placeholder {
+    color: #94a3b8;
+  }
+  .input-field:focus {
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+  }
+
+  html.dark .input-field,
+  html.dark select.input-field,
+  html.dark textarea.input-field,
+  .dark .input-field,
+  .dark select.input-field,
+  .dark textarea.input-field {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+  }
+  html.dark .input-field::placeholder,
+  .dark .input-field::placeholder {
+    color: #64748b;
+  }
+  html.dark .input-field:focus,
+  .dark .input-field:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(249, 115, 22, 0.5);
+  }
+
+  select.input-field {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.25rem;
+    padding-right: 2.5rem;
+  }
+  select.input-field option {
+    background: #fff;
+    color: #1e293b;
+  }
+  html.dark select.input-field option,
+  .dark select.input-field option {
+    background: #1e293b;
+    color: #e2e8f0;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-slate-600 mb-1.5;
+  }
+  html.dark .label,
+  .dark .label {
+    @apply text-slate-400;
+  }
+
+  /* Tables */
+  .erp-table th {
+    @apply text-slate-500;
+  }
+  .erp-table td {
+    @apply text-slate-700;
+  }
+  .erp-table thead tr {
+    @apply border-slate-200 bg-slate-50/80;
+  }
+  .erp-table tbody tr {
+    @apply border-slate-100;
+  }
+  .erp-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  html.dark .erp-table th,
+  .dark .erp-table th {
+    @apply text-slate-400;
+  }
+  html.dark .erp-table td,
+  .dark .erp-table td {
+    @apply text-slate-200;
+  }
+  html.dark .erp-table thead tr,
+  .dark .erp-table thead tr {
+    @apply border-slate-700 bg-slate-800/50;
+  }
+  html.dark .erp-table tbody tr,
+  .dark .erp-table tbody tr {
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+  html.dark .erp-table tbody tr:hover,
+  .dark .erp-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .theme-toggle-btn {
+    @apply border-slate-200 bg-white hover:bg-slate-50;
+  }
+  html.dark .theme-toggle-btn,
+  .dark .theme-toggle-btn {
+    @apply border-slate-700 bg-slate-800 hover:bg-slate-700;
+  }
+}

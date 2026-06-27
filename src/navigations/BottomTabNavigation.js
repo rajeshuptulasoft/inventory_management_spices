@@ -1,52 +1,52 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    Image,
-    ScrollView,
     Alert,
     Dimensions,
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { LOGOUT, LOGO } from "../constant/imagePath";
-import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../constant/fontPath";
+import { FIRASANS, FIRASANSSEMIBOLD } from "../constant/fontPath";
 import { WHITE } from "../constant/color";
 import { AppNavigationProvider } from "./AdminNavigationContext";
 import { logoutUser } from "../redux/actions/auth";
-
-import AdminDashboardScreen from "../screens/userScreens/adminScreen/AdminDashboardScreen";
-import AdminAttendanceScreen from "../screens/userScreens/adminScreen/AdminAttendanceScreen";
-import AdminProfileScreen from "../screens/userScreens/adminScreen/AdminProfileScreen";
-import AdminNotificationScreen from "../screens/userScreens/adminScreen/AdminNotificationScreen";
+import { getDrawerConfig } from "./Drawer";
+import CustomDrawerNavigation from "./CustomDrawerNavigation";
+import { getObjByKey } from "../utils/Storage";
+import { isSubAdminSession } from "./subAdminDrawer";
 
 import FinanceDashboardScreen from "../screens/userScreens/finaceHeaderScreen/FinanceDashboardScreen";
 import FinanceTeamActivityLogScreen from "../screens/userScreens/finaceHeaderScreen/FinanceTeamActivityLogScreen";
 import FinanceAttendanceScreen from "../screens/userScreens/finaceHeaderScreen/FinanceAttendanceScreen";
 import FinanceProfileScreen from "../screens/userScreens/finaceHeaderScreen/FinanceProfileScreen";
-import FinanceNotificationScreen from "../screens/userScreens/finaceHeaderScreen/FinanceNotificationScreen";
-import RawMaterialScreen from "../screens/userScreens/finaceHeaderScreen/RawMaterialScreen";
-import OrderManagementScreen from "../screens/userScreens/finaceHeaderScreen/OrderManagementScreen";
-import PrimarySalesScreen from "../screens/userScreens/finaceHeaderScreen/PrimarySalesScreen";
-import DistributorScreen from "../screens/userScreens/finaceHeaderScreen/DistributorScreen";
-import SuperStockListScreen from "../screens/userScreens/finaceHeaderScreen/SuperStockListScreen";
-import ClaimScreen from "../screens/userScreens/finaceHeaderScreen/ClaimScreen";
-import CollectionScreen from "../screens/userScreens/finaceHeaderScreen/CollectionScreen";
-import FinanceAccountsScreen from "../screens/userScreens/finaceHeaderScreen/FinanceAccountsScreen";
-import AIAnalyticsScreen from "../screens/userScreens/finaceHeaderScreen/AIAnalyticsScreen";
+
+import MarketingDashboardScreen from "../screens/userScreens/marketingHeadScreen/MarketingDashboardScreen";
+import MarketingAttendanceScreen from "../screens/userScreens/marketingHeadScreen/MarketingAttendanceScreen";
+import MarketingBestPlansScreen from "../screens/userScreens/marketingHeadScreen/MarketingBestPlansScreen";
+import MarketingProfileScreen from "../screens/userScreens/marketingHeadScreen/MarketingProfileScreen";
+
+import MachineDashboardScreen from "../screens/userScreens/machineOperatorScreen/MachineDashboardScreen";
+import MachineAttendanceScreen from "../screens/userScreens/machineOperatorScreen/MachineAttendanceScreen";
+import MachineCategoriesScreen from "../screens/userScreens/machineOperatorScreen/MachineCategoriesScreen";
+import MachineProfileScreen from "../screens/userScreens/machineOperatorScreen/MachineProfileScreen";
+
+import ShiftDashboardScreen from "../screens/userScreens/shiftSupervisorScreen/ShiftDashboardScreen";
+import ShiftAttendanceScreen from "../screens/userScreens/shiftSupervisorScreen/ShiftAttendanceScreen";
+import ShiftCategoriesScreen from "../screens/userScreens/shiftSupervisorScreen/ShiftCategoriesScreen";
+import ShiftProfileScreen from "../screens/userScreens/shiftSupervisorScreen/ShiftProfileScreen";
+
+import ProductionDashboardScreen from "../screens/userScreens/productionManagerScreen/ProductionDashboardScreen";
+import ProductionTeamActivityLogScreen from "../screens/userScreens/productionManagerScreen/ProductionTeamActivityLogScreen";
+import ProductionAttendanceScreen from "../screens/userScreens/productionManagerScreen/ProductionAttendanceScreen";
+import ProductionProfileScreen from "../screens/userScreens/productionManagerScreen/ProductionProfileScreen";
 
 const ACTIVE_TAB_BG = "#E8F8EF";
 const ACTIVE_TAB_COLOR = "#05A845";
 const INACTIVE_COLOR = "#9CA3AF";
 const DRAWER_WIDTH = Math.min(Dimensions.get("window").width * 0.82, 320);
-
-const ADMIN_TABS = [
-    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
-    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
-    { key: "Profile", label: "Profile", icon: ProfileIcon },
-];
 
 const FINANCE_TABS = [
     { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
@@ -55,11 +55,33 @@ const FINANCE_TABS = [
     { key: "Profile", label: "Profile", icon: ProfileIcon },
 ];
 
-const ADMIN_SCREEN_MAP = {
-    Dashboard: AdminDashboardScreen,
-    Attendance: AdminAttendanceScreen,
-    Profile: AdminProfileScreen,
-};
+const MARKETING_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "BestPlans", label: "Best Plans", icon: PlansIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const SHIFT_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const MACHINE_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const PRODUCTION_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "TeamActivityLog", label: "Team Activity Log", icon: ActivityIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
 
 const FINANCE_SCREEN_MAP = {
     Dashboard: FinanceDashboardScreen,
@@ -68,30 +90,33 @@ const FINANCE_SCREEN_MAP = {
     Profile: FinanceProfileScreen,
 };
 
-const FINANCE_STACK_SCREEN_MAP = {
-    Notification: FinanceNotificationScreen,
-    RawMaterial: RawMaterialScreen,
-    OrderManagement: OrderManagementScreen,
-    PrimarySales: PrimarySalesScreen,
-    Distributor: DistributorScreen,
-    SuperStockList: SuperStockListScreen,
-    Claim: ClaimScreen,
-    Collection: CollectionScreen,
-    FinanceAccounts: FinanceAccountsScreen,
-    AIAnalytics: AIAnalyticsScreen,
+const MARKETING_SCREEN_MAP = {
+    Dashboard: MarketingDashboardScreen,
+    Attendance: MarketingAttendanceScreen,
+    BestPlans: MarketingBestPlansScreen,
+    Profile: MarketingProfileScreen,
 };
 
-const FINANCE_DRAWER_ITEMS = [
-    { key: "RawMaterial", label: "Raw Materials", icon: "🌿" },
-    { key: "OrderManagement", label: "Order Management", icon: "📦" },
-    { key: "PrimarySales", label: "Primary Sales", icon: "📈" },
-    { key: "Distributor", label: "Distributor", icon: "🚚" },
-    { key: "SuperStockList", label: "Super Stocklists", icon: "📋" },
-    { key: "Claim", label: "Claim", icon: "📝" },
-    { key: "Collection", label: "Collections", icon: "💰" },
-    { key: "FinanceAccounts", label: "Finance & Accounts", icon: "🏦" },
-    { key: "AIAnalytics", label: "AI Analytics", icon: "🤖" },
-];
+const SHIFT_SCREEN_MAP = {
+    Dashboard: ShiftDashboardScreen,
+    Attendance: ShiftAttendanceScreen,
+    Categories: ShiftCategoriesScreen,
+    Profile: ShiftProfileScreen,
+};
+
+const MACHINE_SCREEN_MAP = {
+    Dashboard: MachineDashboardScreen,
+    Attendance: MachineAttendanceScreen,
+    Categories: MachineCategoriesScreen,
+    Profile: MachineProfileScreen,
+};
+
+const PRODUCTION_SCREEN_MAP = {
+    Dashboard: ProductionDashboardScreen,
+    TeamActivityLog: ProductionTeamActivityLogScreen,
+    Attendance: ProductionAttendanceScreen,
+    Profile: ProductionProfileScreen,
+};
 
 function DashboardIcon({ color }) {
     return (
@@ -122,6 +147,24 @@ function AttendanceIcon({ color }) {
     );
 }
 
+function PlansIcon({ color }) {
+    return (
+        <View style={iconStyles.plansWrap}>
+            <View style={[iconStyles.plansStar, { backgroundColor: color }]} />
+            <View style={[iconStyles.plansLine, { backgroundColor: color }]} />
+        </View>
+    );
+}
+
+function CategoriesIcon({ color }) {
+    return (
+        <View style={iconStyles.categoriesWrap}>
+            <View style={[iconStyles.categoriesTab, { backgroundColor: color }]} />
+            <View style={[iconStyles.categoriesBody, { borderColor: color }]} />
+        </View>
+    );
+}
+
 function ProfileIcon({ color }) {
     return (
         <View style={iconStyles.profileWrap}>
@@ -130,65 +173,6 @@ function ProfileIcon({ color }) {
         </View>
     );
 }
-
-const FinanceDrawerContent = ({ onNavigate, onLogout, onClose }) => {
-    const handleLogoutPress = () => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Logout",
-                style: "destructive",
-                onPress: () => {
-                    onClose?.();
-                    onLogout?.();
-                },
-            },
-        ]);
-    };
-
-    return (
-        <SafeAreaView style={drawerStyles.safeArea} edges={["top", "bottom"]}>
-            <View style={drawerStyles.container}>
-                <View style={drawerStyles.profileSection}>
-                    <Image source={LOGO} style={drawerStyles.logo} resizeMode="contain" />
-                    <Text style={drawerStyles.userName}>Priya Sharma</Text>
-                    <Text style={drawerStyles.userRole}>Finance Department</Text>
-                </View>
-
-                <ScrollView
-                    style={drawerStyles.menuScroll}
-                    contentContainerStyle={drawerStyles.menuContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {FINANCE_DRAWER_ITEMS.map((item) => (
-                        <TouchableOpacity
-                            key={item.key}
-                            style={drawerStyles.menuItem}
-                            activeOpacity={0.85}
-                            onPress={() => onNavigate?.(item.key)}
-                        >
-                            <View style={drawerStyles.menuIconWrap}>
-                                <Text style={drawerStyles.menuIcon}>{item.icon}</Text>
-                            </View>
-                            <Text style={drawerStyles.menuLabel}>{item.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-
-                <TouchableOpacity
-                    style={drawerStyles.logoutButton}
-                    activeOpacity={0.85}
-                    onPress={handleLogoutPress}
-                >
-                    <View style={drawerStyles.menuIconWrap}>
-                        <Image source={LOGOUT} style={drawerStyles.logoutIcon} resizeMode="contain" />
-                    </View>
-                    <Text style={drawerStyles.logoutText}>Logout</Text>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
-    );
-};
 
 const TabBar = ({ tabs, activeTab, onTabPress, compactLabel }) => (
     <SafeAreaView edges={["bottom"]} style={styles.tabBarSafeArea}>
@@ -225,17 +209,61 @@ const TabBar = ({ tabs, activeTab, onTabPress, compactLabel }) => (
 const BottomTabNavigation = ({ role = "finance" }) => {
     const dispatch = useDispatch();
     const isFinance = role === "finance";
-    const tabs = isFinance ? FINANCE_TABS : ADMIN_TABS;
-    const screenMap = isFinance ? FINANCE_SCREEN_MAP : ADMIN_SCREEN_MAP;
+    const isMarketing = role === "marketing";
+    const isShift = role === "shift";
+    const isMachine = role === "machine";
+    const isProduction = role === "production";
+    const hasDrawer = isFinance || isMarketing || isShift || isMachine || isProduction;
+
+    const tabs = isMarketing
+          ? MARKETING_TABS
+          : isProduction
+            ? PRODUCTION_TABS
+          : isShift
+            ? SHIFT_TABS
+            : isMachine
+              ? MACHINE_TABS
+              : FINANCE_TABS;
+    const screenMap = isMarketing
+          ? MARKETING_SCREEN_MAP
+          : isProduction
+            ? PRODUCTION_SCREEN_MAP
+          : isShift
+            ? SHIFT_SCREEN_MAP
+            : isMachine
+              ? MACHINE_SCREEN_MAP
+              : FINANCE_SCREEN_MAP;
 
     const [activeTab, setActiveTab] = useState("Dashboard");
     const [stackRoute, setStackRoute] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [loginSession, setLoginSession] = useState(null);
+
+    const refreshLoginSession = useCallback(async () => {
+        const loginResponse = await getObjByKey("loginResponse");
+        setLoginSession(loginResponse || null);
+        return loginResponse;
+    }, []);
+
+    useEffect(() => {
+        refreshLoginSession();
+    }, [refreshLoginSession]);
+
+    const isSubAdmin = isSubAdminSession(loginSession);
+    const drawerConfig = hasDrawer ? getDrawerConfig(role, isSubAdmin) : null;
+    const stackScreenMap = drawerConfig?.stackMap || {};
+    const drawerUserName = loginSession?.name || drawerConfig?.userName || "";
+    const drawerUserRole = drawerConfig?.isSubAdmin
+        ? `${drawerConfig.userRole} • Sub Admin`
+        : drawerConfig?.userRole || "";
 
     const ActiveScreen = screenMap[activeTab];
 
     const closeDrawer = useCallback(() => setDrawerOpen(false), []);
-    const openDrawer = useCallback(() => setDrawerOpen(true), []);
+    const openDrawer = useCallback(async () => {
+        await refreshLoginSession();
+        setDrawerOpen(true);
+    }, [refreshLoginSession]);
 
     const handleLogout = useCallback(() => {
         Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -254,7 +282,7 @@ const BottomTabNavigation = ({ role = "finance" }) => {
             closeDrawer,
             navigate: (name) => {
                 closeDrawer();
-                if (isFinance) {
+                if (hasDrawer) {
                     setStackRoute(name);
                     return;
                 }
@@ -265,11 +293,10 @@ const BottomTabNavigation = ({ role = "finance" }) => {
             goBack: () => setStackRoute(null),
             onLogout: handleLogout,
         }),
-        [isFinance, openDrawer, closeDrawer, handleLogout]
+        [hasDrawer, openDrawer, closeDrawer, handleLogout]
     );
 
-    const FinanceStackScreen = stackRoute ? FINANCE_STACK_SCREEN_MAP[stackRoute] : null;
-    const showAdminNotification = !isFinance && stackRoute === "Notification";
+    const StackScreen = stackRoute ? stackScreenMap[stackRoute] : null;
 
     const renderTabContent = () => (
         <>
@@ -280,45 +307,36 @@ const BottomTabNavigation = ({ role = "finance" }) => {
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabPress={setActiveTab}
-                compactLabel={isFinance}
+                compactLabel={isFinance || isMarketing || isShift || isMachine || isProduction}
             />
         </>
     );
-
-    if (isFinance) {
-        return (
-            <AppNavigationProvider value={navigation}>
-                <SafeAreaProvider>
-                    <View style={styles.root}>
-                        {FinanceStackScreen ? <FinanceStackScreen /> : renderTabContent()}
-
-                        {drawerOpen ? (
-                            <View style={styles.drawerOverlay}>
-                                <View style={styles.drawerPanel}>
-                                    <FinanceDrawerContent
-                                        onNavigate={navigation.navigate}
-                                        onLogout={handleLogout}
-                                        onClose={closeDrawer}
-                                    />
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.backdrop}
-                                    activeOpacity={1}
-                                    onPress={closeDrawer}
-                                />
-                            </View>
-                        ) : null}
-                    </View>
-                </SafeAreaProvider>
-            </AppNavigationProvider>
-        );
-    }
 
     return (
         <AppNavigationProvider value={navigation}>
             <SafeAreaProvider>
                 <View style={styles.root}>
-                    {showAdminNotification ? <AdminNotificationScreen /> : renderTabContent()}
+                    {StackScreen ? <StackScreen /> : renderTabContent()}
+
+                    {drawerOpen ? (
+                        <View style={styles.drawerOverlay}>
+                            <View style={styles.drawerPanel}>
+                                <CustomDrawerNavigation
+                                    drawerItems={drawerConfig.items}
+                                    userName={drawerUserName}
+                                    userRole={drawerUserRole}
+                                    onNavigate={navigation.navigate}
+                                    onLogout={handleLogout}
+                                    onClose={closeDrawer}
+                                />
+                            </View>
+                            <TouchableOpacity
+                                style={styles.backdrop}
+                                activeOpacity={1}
+                                onPress={closeDrawer}
+                            />
+                        </View>
+                    ) : null}
                 </View>
             </SafeAreaProvider>
         </AppNavigationProvider>
@@ -373,6 +391,43 @@ const iconStyles = StyleSheet.create({
         borderTopWidth: 8,
         borderLeftColor: "transparent",
         borderRightColor: "transparent",
+    },
+    plansWrap: {
+        width: 18,
+        height: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+    },
+    plansStar: {
+        width: 10,
+        height: 10,
+        borderRadius: 2,
+        transform: [{ rotate: "45deg" }],
+    },
+    plansLine: {
+        width: 14,
+        height: 2,
+        borderRadius: 1,
+    },
+    categoriesWrap: {
+        width: 18,
+        height: 18,
+        alignItems: "center",
+        justifyContent: "flex-end",
+    },
+    categoriesTab: {
+        width: 10,
+        height: 3,
+        borderTopLeftRadius: 2,
+        borderTopRightRadius: 2,
+        marginBottom: 1,
+    },
+    categoriesBody: {
+        width: 16,
+        height: 12,
+        borderWidth: 2,
+        borderRadius: 2,
     },
     profileWrap: {
         width: 20,
@@ -466,90 +521,5 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 8,
-    },
-});
-
-const drawerStyles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: WHITE,
-    },
-    container: {
-        flex: 1,
-        backgroundColor: WHITE,
-    },
-    profileSection: {
-        paddingHorizontal: 20,
-        paddingVertical: 24,
-        borderBottomWidth: 1,
-        borderBottomColor: "#E5E7EB",
-        alignItems: "flex-start",
-    },
-    logo: {
-        width: 120,
-        height: 36,
-        marginBottom: 16,
-    },
-    userName: {
-        fontFamily: UBUNTUBOLD,
-        fontSize: 18,
-        color: "#111827",
-        marginBottom: 4,
-    },
-    userRole: {
-        fontFamily: FIRASANS,
-        fontSize: 13,
-        color: "#6B7280",
-    },
-    menuScroll: {
-        flex: 1,
-    },
-    menuContent: {
-        paddingVertical: 8,
-    },
-    menuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F3F4F6",
-    },
-    menuIconWrap: {
-        width: 38,
-        height: 38,
-        borderRadius: 10,
-        backgroundColor: "#F3F4F6",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    menuIcon: {
-        fontSize: 18,
-    },
-    menuLabel: {
-        flex: 1,
-        fontFamily: FIRASANSSEMIBOLD,
-        fontSize: 15,
-        color: "#111827",
-    },
-    logoutButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 18,
-        borderTopWidth: 1,
-        borderTopColor: "#E5E7EB",
-        gap: 12,
-    },
-    logoutIcon: {
-        width: 20,
-        height: 20,
-        tintColor: "#DC2626",
-    },
-    logoutText: {
-        fontFamily: FIRASANSSEMIBOLD,
-        fontSize: 16,
-        color: "#DC2626",
     },
 });

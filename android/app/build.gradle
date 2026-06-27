@@ -84,6 +84,14 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                def projectNinja = new File(rootProject.projectDir, "../scripts/tools/ninja.exe")
+                        .absolutePath.replace('\\', '/')
+                arguments "-DCMAKE_MAKE_PROGRAM=${projectNinja}",
+                        "-DCMAKE_OBJECT_PATH_MAX=1024"
+            }
+        }
     }
     signingConfigs {
         debug {

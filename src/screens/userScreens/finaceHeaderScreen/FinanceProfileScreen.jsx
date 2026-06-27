@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -6,12 +6,15 @@ import {
     ScrollView,
     TouchableOpacity,
     Alert,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FinanceHeader from "../../../components/commonComponents/FinanceHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
+import { getObjByKey } from "../../../utils/Storage";
+import { buildUrl, GETNETWORK, extractApiData, isApiSuccess } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
-import { WHITE } from "../../../constant/color";
+import { WHITE, BRANDCOLOR } from "../../../constant/color";
 
 const SCREEN_BG = "#F3F4F6";
 const CARD_BG = "#FFFFFF";
@@ -21,13 +24,13 @@ const PRIMARY_BLUE = "#2563EB";
 const RED = "#DC2626";
 
 const PROFILE_DATA = {
-    name: "Priya Sharma",
-    role: "Finance",
-    userId: "FIN-014",
-    email: "priya@yubispices.com",
-    phone: "+91 98765 12345",
-    department: "Finance & Accounts",
-    joinedOn: "05 Mar 2023",
+    name: "",
+    role: "",
+    userId: "",
+    email: "",
+    phone: "",
+    department: "",
+    joinedOn: "",
 };
 
 const ProfileField = ({ label, value }) => (
@@ -39,6 +42,32 @@ const ProfileField = ({ label, value }) => (
 
 const FinanceProfileScreen = () => {
     const navigation = useFinanceNavigation();
+    const [profile, setProfile] = useState(PROFILE_DATA);
+    const [loading, setLoading] = useState(true);
+
+    const loadProfile = useCallback(async () => {
+        setLoading(true);
+        const stored = await getObjByKey("loginResponse");
+        const res = await GETNETWORK(buildUrl("auth/profile"), true);
+        const data = isApiSuccess(res) ? extractApiData(res) : stored?.user || stored;
+        const name = data?.name || data?.full_name || stored?.name || "";
+        const initials = name ? name.charAt(0).toUpperCase() : "P";
+        setProfile({
+            name,
+            role: data?.role?.role_name || stored?.apiRole || stored?.role || "Finance",
+            userId: String(data?.id ?? stored?.userId ?? ""),
+            email: data?.email || stored?.email || "",
+            phone: data?.phone || data?.mobile || "—",
+            department: data?.department || "Finance & Accounts",
+            joinedOn: data?.created_at?.slice?.(0, 10) || "—",
+            initials,
+        });
+        setLoading(false);
+    }, []);
+
+    useEffect(() => {
+        loadProfile();
+    }, [loadProfile]);
 
     const handleLogout = () => {
         Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -51,11 +80,16 @@ const FinanceProfileScreen = () => {
         <View style={styles.root}>
             <FinanceHeader
                 title="Profile"
-                profileInitial="P"
+                profileInitial={profile.initials || "P"}
                 onProfilePress={navigation.openDrawer}
             />
 
             <SafeAreaView style={styles.safeArea} edges={[]}>
+                {loading ? (
+                    <View style={styles.loaderWrap}>
+                        <ActivityIndicator size="large" color={BRANDCOLOR} />
+                    </View>
+                ) : (
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
@@ -63,20 +97,20 @@ const FinanceProfileScreen = () => {
                     <View style={styles.avatarCard}>
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>
-                                {PROFILE_DATA.name.charAt(0).toUpperCase()}
+                                {(profile.name || "P").charAt(0).toUpperCase()}
                             </Text>
                         </View>
-                        <Text style={styles.name}>{PROFILE_DATA.name}</Text>
-                        <Text style={styles.role}>{PROFILE_DATA.role}</Text>
+                        <Text style={styles.name}>{profile.name || "—"}</Text>
+                        <Text style={styles.role}>{profile.role}</Text>
                     </View>
 
                     <View style={styles.detailsCard}>
                         <Text style={styles.sectionTitle}>Profile Details</Text>
-                        <ProfileField label="User ID" value={PROFILE_DATA.userId} />
-                        <ProfileField label="Email" value={PROFILE_DATA.email} />
-                        <ProfileField label="Phone" value={PROFILE_DATA.phone} />
-                        <ProfileField label="Department" value={PROFILE_DATA.department} />
-                        <ProfileField label="Joined On" value={PROFILE_DATA.joinedOn} />
+                        <ProfileField label="User ID" value={profile.userId || "—"} />
+                        <ProfileField label="Email" value={profile.email || "—"} />
+                        <ProfileField label="Phone" value={profile.phone} />
+                        <ProfileField label="Department" value={profile.department} />
+                        <ProfileField label="Joined On" value={profile.joinedOn} />
                     </View>
 
                     <TouchableOpacity
@@ -87,6 +121,7 @@ const FinanceProfileScreen = () => {
                         <Text style={styles.logoutText}>Logout</Text>
                     </TouchableOpacity>
                 </ScrollView>
+                )}
             </SafeAreaView>
         </View>
     );
@@ -96,6 +131,7 @@ export default FinanceProfileScreen;
 
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: SCREEN_BG },
+    loaderWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
     safeArea: { flex: 1 },
     scrollContent: { padding: 16, paddingBottom: 32 },
     avatarCard: {

@@ -20,6 +20,15 @@ import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
+import {
+    buildUrl,
+    GETNETWORK,
+    POSTNETWORK,
+    extractApiList,
+    getApiMessage,
+    isApiSuccess,
+    fmtInr,
+} from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
 const CARD_BG = "#FFFFFF";
@@ -31,22 +40,13 @@ const PRIMARY_BLUE = "#2563EB";
 const GREEN = "#16A34A";
 const RED = "#DC2626";
 
-const INITIAL_MATERIALS = [
-    {
-        id: "1",
-        code: "RM-TUR",
-        material: "Turmeric Root (Raw)",
-        price: "₹120",
-        status: "Active",
-    },
-    {
-        id: "2",
-        code: "RM-CHI",
-        material: "Dry Red Chilli",
-        price: "₹180",
-        status: "Active",
-    },
-];
+const mapRawMaterialRow = (row) => ({
+    id: String(row.id),
+    code: row.sku || row.code || `RM-${row.id}`,
+    material: row.name || "",
+    price: fmtInr(row.cost_per_unit),
+    status: "Active",
+});
 
 const FormField = ({ label, required, children }) => (
     <View style={styles.formField}>
@@ -222,10 +222,37 @@ const RawMaterialCard = ({ item, onEdit, onDelete }) => (
 
 const RawMaterialScreen = () => {
     const navigation = useFinanceNavigation();
-    const [materials, setMaterials] = useState(INITIAL_MATERIALS);
+    const [materials, setMaterials] = useState([]);
     const [search, setSearch] = useState("");
     const [refreshing, setRefreshing] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [showAddModal, setShowAddModal] = useState(false);
+
+    const fetchMaterials = useCallback(async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+        try {
+            const res = await GETNETWORK(buildUrl("raw-materials"), true);
+            if (!isApiSuccess(res)) {
+                setLoadError(getApiMessage(res, "Failed to load raw materials"));
+                setMaterials([]);
+                return;
+            }
+            setMaterials(extractApiList(res).map(mapRawMaterialRow));
+            setLoadError("");
+        } catch {
+            setLoadError("Failed to load raw materials");
+            setMaterials([]);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchMaterials();
+    }, [fetchMaterials]);
 
     const handleBack = useCallback(() => {
         if (showAddModal) {
@@ -253,9 +280,8 @@ const RawMaterialScreen = () => {
     }, [navigation, showAddModal]);
 
     const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1000);
-    }, []);
+        fetchMaterials(true);
+    }, [fetchMaterials]);
 
     const filteredMaterials = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -267,17 +293,25 @@ const RawMaterialScreen = () => {
         );
     }, [search, materials]);
 
-    const handleSaveMaterial = (form) => {
-        const priceValue = form.standardPrice === "0" ? "₹0" : `₹${form.standardPrice}`;
-        const newItem = {
-            id: String(Date.now()),
-            code: form.code,
-            material: form.name,
-            price: priceValue,
-            status: form.status,
-        };
-        setMaterials((prev) => [...prev, newItem]);
+    const handleSaveMaterial = async (form) => {
+        const res = await POSTNETWORK(
+            buildUrl("raw-materials"),
+            {
+                name: form.name,
+                sku: form.code,
+                category: "raw",
+                minimum_stock: Number(form.reorderLevel) || 0,
+                current_stock: 0,
+                cost_per_unit: Number(form.standardPrice) || 0,
+            },
+            true
+        );
+        if (!isApiSuccess(res)) {
+            Alert.alert("Error", getApiMessage(res, "Save failed"));
+            return;
+        }
         setShowAddModal(false);
+        fetchMaterials(true);
     };
 
     const handleEdit = (item) => {
@@ -310,7 +344,9 @@ const RawMaterialScreen = () => {
                     </View>
                 </View>
                 <Text style={styles.summaryValue}>{materials.length}</Text>
-                <Text style={styles.summaryFooter}>← From database</Text>
+                <Text style={styles.summaryFooter}>
+                    {loading ? "→ Loading..." : loadError ? `→ ${loadError}` : "← From database"}
+                </Text>
             </View>
 
             <View style={styles.listSection}>

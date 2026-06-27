@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FinanceHeader from "../../../components/commonComponents/FinanceHeader";
+import AttendanceActionButtons from "../../../components/attendance/AttendanceActionButtons";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
+import { useAttendanceTracking } from "../../../hooks/useAttendanceTracking";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR } from "../../../constant/color";
 
@@ -22,35 +24,36 @@ const TEXT_LIGHT = "#9CA3AF";
 const BORDER_COLOR = "#E5E7EB";
 const GREEN = "#16A34A";
 
-const SUMMARY_DATA = [
+const SUMMARY_META = [
     {
         id: "1",
         label: "TOTAL RECORDS",
-        value: "0",
         footer: "All time",
         icon: "📋",
         iconBg: "#DBEAFE",
+        key: "totalRecords",
     },
     {
         id: "2",
         label: "PRESENT TODAY",
-        value: "0",
         footer: "Checked in today",
         icon: "✓",
         iconBg: "#DCFCE7",
         iconColor: GREEN,
+        key: "presentToday",
     },
     {
         id: "3",
         label: "WITH LOCATION",
-        value: "0",
         footer: "GPS captured",
         icon: "📍",
         iconBg: "#EDE9FE",
+        key: "withLocation",
     },
 ];
 
-const ATTENDANCE_ROWS = [];
+const EMPLOYEE = { name: "Rajesh Sahoo", role: "Finance Head" };
+const STORAGE_KEY = "attendance_finance";
 
 const SummaryCard = ({ item }) => (
     <View style={styles.summaryCard}>
@@ -111,6 +114,17 @@ const FinanceAttendanceScreen = () => {
     const navigation = useFinanceNavigation();
     const [search, setSearch] = useState("");
     const [refreshing, setRefreshing] = useState(false);
+    const { rows, canCheckIn, canCheckOut, handleCheckIn, handleCheckOut, summaryData } =
+        useAttendanceTracking(STORAGE_KEY, EMPLOYEE);
+
+    const summaryCards = useMemo(
+        () =>
+            SUMMARY_META.map((item) => ({
+                ...item,
+                value: summaryData[item.key] ?? "0",
+            })),
+        [summaryData]
+    );
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -119,21 +133,21 @@ const FinanceAttendanceScreen = () => {
 
     const filteredRows = useMemo(() => {
         const query = search.trim().toLowerCase();
-        if (!query) return ATTENDANCE_ROWS;
-        return ATTENDANCE_ROWS.filter(
+        if (!query) return rows;
+        return rows.filter(
             (row) =>
                 row.name.toLowerCase().includes(query) ||
                 (row.role && row.role.toLowerCase().includes(query)) ||
                 row.date.includes(query)
         );
-    }, [search]);
+    }, [search, rows]);
 
     const listHeader = (
         <View>
             <View style={styles.pageHeader}>
                 <Text style={styles.pageTitle}>Attendance Tracking</Text>
                 <Text style={styles.pageSubtitle}>
-                    GPS check-in/out for all employees — use the header buttons to mark attendance.
+                    GPS check-in/out — tap the location button to check in and use Check Out when done.
                 </Text>
             </View>
 
@@ -143,7 +157,7 @@ const FinanceAttendanceScreen = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.summaryScroll}
             >
-                {SUMMARY_DATA.map((item) => (
+                {summaryCards.map((item) => (
                     <SummaryCard key={item.id} item={item} />
                 ))}
             </ScrollView>
@@ -211,6 +225,13 @@ const FinanceAttendanceScreen = () => {
                         </View>
                     }
                 />
+
+                <AttendanceActionButtons
+                    canCheckIn={canCheckIn}
+                    canCheckOut={canCheckOut}
+                    onCheckIn={handleCheckIn}
+                    onCheckOut={handleCheckOut}
+                />
             </SafeAreaView>
         </View>
     );
@@ -228,7 +249,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: 16,
-        paddingBottom: 24,
+        paddingBottom: 100,
     },
     pageHeader: {
         paddingTop: 14,

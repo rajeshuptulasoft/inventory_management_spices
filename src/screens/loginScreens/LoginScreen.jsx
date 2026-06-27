@@ -21,15 +21,14 @@ import { TextInputComponent } from "../../components/commonComponents/TextInputC
 import { USERID, PASSWORD, HIDE, VIEW, LOGO } from "../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../constant/config";
 import { loginUser } from "../../redux/actions/auth";
+import { POSTNETWORK } from "../../utils/Network";
+import { extractApiData, getApiMessage, isApiSuccess, mapApiRoleToAppRole, extractLoginPayload, resolveApiRoleName } from "../../utils/Network";
+import { buildUrl } from "../../utils/Network";
 
 const SCREEN_BG = "#F5F7FA";
 const TEXT_SECONDARY = "#6B7280";
 const TEXT_LIGHT = "#9CA3AF";
 const BORDER_COLOR = "#E5E7EB";
-
-const ADMIN_EMAIL = "admin@test.com";
-const FINANCE_EMAIL = "finance@test.com";
-const VALID_PASSWORD = "Admin@123";
 
 const LoginScreen = () => {
     const dispatch = useDispatch();
@@ -61,35 +60,49 @@ const LoginScreen = () => {
             return;
         }
 
-        if (pass !== VALID_PASSWORD) {
-            Alert.alert("Sign In", "Invalid User ID or password.");
-            return;
-        }
-
-        let role = null;
-        let name = "";
-
-        if (email === ADMIN_EMAIL) {
-            role = "admin";
-            name = "Admin User";
-        } else if (email === FINANCE_EMAIL) {
-            role = "finance";
-            name = "Rajesh Sahoo";
-        } else {
-            Alert.alert("Sign In", "Invalid User ID or password.");
-            return;
-        }
-
         try {
             setSubmitting(true);
+            const res = await POSTNETWORK(buildUrl("v1/auth/login"), {
+                email,
+                password: pass,
+            });
+
+            if (!isApiSuccess(res)) {
+                Alert.alert("Sign In", getApiMessage(res, "Invalid User ID or password."));
+                return;
+            }
+
+            const payload = extractLoginPayload(res);
+            const user = payload?.user || payload;
+            const token = payload?.accessToken || payload?.token || user?.accessToken || user?.token;
+            const refreshToken = payload?.refreshToken || user?.refreshToken;
+            const apiRole = resolveApiRoleName(user);
+            const role = mapApiRoleToAppRole(apiRole, email);
+            const isSubAdmin = email.includes("subadmin") || user?.is_sub_admin === true;
+
+            if (!token || !role) {
+                Alert.alert(
+                    "Sign In",
+                    "Your account role is not supported on mobile. Contact administrator."
+                );
+                return;
+            }
+
             await dispatch(
                 loginUser({
                     email,
                     role,
-                    name,
-                    token: "demo-token",
+                    apiRole,
+                    name: user?.name || user?.full_name || email,
+                    userId: user?.id,
+                    isSubAdmin,
+                    token,
+                    refreshToken,
+                    user,
                 })
             );
+        } catch {
+            Alert.alert("Sign In", "Unable to connect. Please check your network and try again.");
         } finally {
             setSubmitting(false);
         }

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -13,6 +13,13 @@ import FinanceHeader from "../../../components/commonComponents/FinanceHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR } from "../../../constant/color";
+import {
+    buildUrl,
+    extractApiData,
+    fmtInr,
+    GETNETWORK,
+    isApiSuccess,
+} from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
 const CARD_BG = "#FFFFFF";
@@ -23,73 +30,80 @@ const PRIMARY_BLUE = "#2563EB";
 const BORDER_COLOR = "#E5E7EB";
 const GREEN = "#16A34A";
 
-const KPI_DATA = [
-    {
-        id: "1",
-        label: "REVENUE (MTD)",
-        value: "₹0",
-        footer: "From invoices",
-        icon: "💰",
-        iconBg: "#DBEAFE",
-    },
-    {
-        id: "2",
-        label: "ORDERS",
-        value: "0",
-        footer: "Total orders",
-        icon: "🎫",
-        iconBg: "#DCFCE7",
-    },
-    {
-        id: "3",
-        label: "ACTIVE PARTIES",
-        value: "0",
-        footer: "Distributors & retailers",
-        icon: "📅",
-        iconBg: "#EDE9FE",
-    },
-    {
-        id: "4",
-        label: "ACTIVE SCHEMES",
-        value: "0",
-        footer: "Running promotions",
-        icon: "🎁",
-        iconBg: "#FEF3C7",
-    },
-    {
-        id: "5",
-        label: "OUTSTANDING",
-        value: "₹0",
-        footer: "0 pending approvals",
-        icon: "⚠️",
-        iconBg: "#FEF3C7",
-    },
-    {
-        id: "6",
-        label: "INVENTORY (UNITS)",
-        value: "0",
-        footer: "Finished goods in stock",
-        icon: "📦",
-        iconBg: "#EDE9FE",
-    },
-    {
-        id: "7",
-        label: "COLLECTIONS",
-        value: "₹0",
-        footer: "Total collected",
-        footerHighlight: true,
-        icon: "📊",
-        iconBg: "#DCFCE7",
-    },
-    {
-        id: "8",
-        label: "PENDING APPROVALS",
-        value: "0",
-        footer: "Orders awaiting approval",
-        icon: "🛒",
-        iconBg: "#FEE2E2",
-    },
-];
+const buildKpiData = (kpi = {}) => {
+    const parties =
+        (kpi.distributorCount ?? 0) + (kpi.wholesalerCount ?? 0) + (kpi.dealerCount ?? 0);
+    const totalOrders = (kpi.pendingOrders ?? 0) + (kpi.deliveredOrders ?? 0);
+    const pending = kpi.pendingOrders ?? 0;
+
+    return [
+        {
+            id: "1",
+            label: "REVENUE (MTD)",
+            value: fmtInr(kpi.revenue),
+            footer: "From invoices",
+            icon: "💰",
+            iconBg: "#DBEAFE",
+        },
+        {
+            id: "2",
+            label: "ORDERS",
+            value: String(totalOrders),
+            footer: "Total orders",
+            icon: "🎫",
+            iconBg: "#DCFCE7",
+        },
+        {
+            id: "3",
+            label: "ACTIVE PARTIES",
+            value: String(parties),
+            footer: "Distributors & retailers",
+            icon: "📅",
+            iconBg: "#EDE9FE",
+        },
+        {
+            id: "4",
+            label: "ACTIVE SCHEMES",
+            value: String(kpi.activeSchemes ?? kpi.schemeCount ?? 0),
+            footer: "Running promotions",
+            icon: "🎁",
+            iconBg: "#FEF3C7",
+        },
+        {
+            id: "5",
+            label: "OUTSTANDING",
+            value: fmtInr(kpi.totalOutstanding),
+            footer: `${pending} pending approvals`,
+            icon: "⚠️",
+            iconBg: "#FEF3C7",
+        },
+        {
+            id: "6",
+            label: "INVENTORY (UNITS)",
+            value: String(kpi.inventoryUnits ?? kpi.productCount ?? 0),
+            footer: "Finished goods in stock",
+            icon: "📦",
+            iconBg: "#EDE9FE",
+        },
+        {
+            id: "7",
+            label: "COLLECTIONS",
+            value: fmtInr(kpi.monthCollections),
+            footer: "Total collected",
+            footerHighlight: true,
+            icon: "📊",
+            iconBg: "#DCFCE7",
+        },
+        {
+            id: "8",
+            label: "PENDING APPROVALS",
+            value: String(pending),
+            footer: "Orders awaiting approval",
+            icon: "🛒",
+            iconBg: "#FEE2E2",
+        },
+    ];
+};
 
 const CHART_SECTIONS = [
     {
@@ -149,16 +163,33 @@ const ChartSection = ({ title, subtitle, emptyText }) => (
 const FinanceDashboardScreen = () => {
     const navigation = useFinanceNavigation();
     const { width } = useWindowDimensions();
+    const [kpiData, setKpiData] = useState(() => buildKpiData());
     const [refreshing, setRefreshing] = useState(false);
 
     const horizontalPadding = 16;
     const gap = 10;
     const cardWidth = (width - horizontalPadding * 2 - gap) / 2;
 
+    const fetchDashboard = useCallback(async () => {
+        try {
+            const res = await GETNETWORK(buildUrl("fmcg/dashboard/enterprise"), true);
+            if (isApiSuccess(res)) {
+                const payload = extractApiData(res) || {};
+                setKpiData(buildKpiData(payload.kpis || payload));
+            }
+        } finally {
+            setRefreshing(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchDashboard();
+    }, [fetchDashboard]);
+
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1000);
-    }, []);
+        fetchDashboard();
+    }, [fetchDashboard]);
 
     const listHeader = (
         <View style={styles.listHeader}>
@@ -207,7 +238,7 @@ const FinanceDashboardScreen = () => {
 
             <SafeAreaView style={styles.safeArea} edges={[]}>
                 <FlatList
-                    data={KPI_DATA}
+                    data={kpiData}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
                     columnWrapperStyle={styles.kpiRow}
