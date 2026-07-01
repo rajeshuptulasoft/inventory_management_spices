@@ -30,6 +30,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -331,6 +332,8 @@ const MarketingProductsSkuScreen = () => {
                 GETNETWORK(buildUrl("products", "limit=100"), true),
                 GETNETWORK(buildUrl("categories"), true),
             ]);
+            logScreenApi("MarketingProductsSkuScreen", "products", productsRes, buildUrl("products", "limit=100"));
+            logScreenApi("MarketingProductsSkuScreen", "categories", categoriesRes, buildUrl("categories"));
             if (!isApiSuccess(productsRes)) {
                 setLoadError(getApiMessage(productsRes, "Failed to load products"));
                 setProducts([]);
@@ -425,9 +428,14 @@ const MarketingProductsSkuScreen = () => {
             description: form.description || "",
             status: String(form.status || "active").toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`products/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("products"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`products/${form.id}`), payload, true);
+            logScreenApi("MarketingProductsSkuScreen", "products/update", res, buildUrl(`products/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("products"), payload, true);
+            logScreenApi("MarketingProductsSkuScreen", "products/create", res, buildUrl("products"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -444,6 +452,7 @@ const MarketingProductsSkuScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`products/${item.id}`), true);
+                    logScreenApi("MarketingProductsSkuScreen", "products/${item.id}", res, buildUrl(`products/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

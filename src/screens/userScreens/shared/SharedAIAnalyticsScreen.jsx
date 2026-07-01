@@ -22,6 +22,7 @@ import {
     getApiMessage,
     isApiSuccess,
     fmtInr,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -104,6 +105,8 @@ const SharedAIAnalyticsScreen = () => {
                 GETNETWORK(buildUrl("dashboard/marketing"), true),
                 GETNETWORK(buildUrl("fmcg/dashboard/enterprise"), true),
             ]);
+            logScreenApi("SharedAIAnalyticsScreen", "dashboard/marketing", marketingRes, buildUrl("dashboard/marketing"));
+            logScreenApi("SharedAIAnalyticsScreen", "fmcg/dashboard/enterprise", enterpriseRes, buildUrl("fmcg/dashboard/enterprise"));
             const marketing = isApiSuccess(marketingRes) ? extractApiData(marketingRes) : null;
             const enterprise = isApiSuccess(enterpriseRes) ? extractApiData(enterpriseRes) : null;
             const kpi = enterprise?.kpis || {};

@@ -17,6 +17,7 @@ import {
     extractApiData,
     GETNETWORK,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -155,6 +156,7 @@ const ProductionDashboardScreen = () => {
     const fetchDashboard = useCallback(async () => {
         try {
             const res = await GETNETWORK(buildUrl("dashboard/production"), true);
+            logScreenApi("ProductionDashboardScreen", "dashboard/production", res, buildUrl("dashboard/production"));
             if (isApiSuccess(res)) {
                 const stats = extractApiData(res) || {};
                 setSummaryData(buildSummaryData(stats));

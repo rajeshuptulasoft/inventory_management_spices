@@ -29,6 +29,7 @@ import {
     isApiSuccess,
     mapSalesOrderRow,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -335,6 +336,7 @@ const SharedPrimarySalesScreen = () => {
         setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("fmcg/sales-orders", "limit=100"), true);
+            logScreenApi("SharedPrimarySalesScreen", "fmcg/sales-orders", res, buildUrl("fmcg/sales-orders", "limit=100"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load sales orders"));
                 setSales([]);

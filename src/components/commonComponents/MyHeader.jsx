@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
     View,
     Text,
@@ -7,11 +7,13 @@ import {
     Platform,
     Pressable,
     Image,
+    BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BLACK, WHITE } from "../../constant/color";
 import { UBUNTUBOLD } from "../../constant/fontPath";
 import { BACK } from "../../constant/imagePath";
+import { useStackBackHandler } from "../../hooks/useStackBackHandler";
 
 export const MyHeader = ({
     backgroundColor = WHITE,
@@ -19,9 +21,13 @@ export const MyHeader = ({
     showCenterTitle = false,
     title = "",
     showBack = false,
-    onBackPress = () => {},
+    onBackPress = null,
 }) => {
-    if (showBack) {
+    const shouldShowBack = showBack || typeof onBackPress === "function";
+
+    useStackBackHandler(onBackPress || (() => {}), shouldShowBack);
+
+    if (shouldShowBack) {
         return (
             <>
                 <StatusBar

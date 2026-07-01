@@ -28,6 +28,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -345,6 +346,8 @@ const ProductionRunsScreen = () => {
                 GETNETWORK(buildUrl("production"), true),
                 GETNETWORK(buildUrl("batches"), true),
             ]);
+            logScreenApi("ProductionRunsScreen", "production", productionRes, buildUrl("production"));
+            logScreenApi("ProductionRunsScreen", "batches", batchesRes, buildUrl("batches"));
             if (!isApiSuccess(productionRes)) {
                 setLoadError(getApiMessage(productionRes, "Failed to load production"));
                 setBatches([]);
@@ -448,6 +451,7 @@ const ProductionRunsScreen = () => {
             },
             true
         );
+        logScreenApi("ProductionRunsScreen", "production", res, buildUrl("production"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Production failed"));
             return;

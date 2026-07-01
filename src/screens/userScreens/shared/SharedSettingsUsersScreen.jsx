@@ -32,6 +32,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -367,10 +368,14 @@ const SharedSettingsUsersScreen = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const [usersRes, rolesRes] = await Promise.all([
+            const [usersRes, rolesRes, settingsRes] = await Promise.all([
                 GETNETWORK(buildUrl("users", "limit=200"), true),
                 GETNETWORK(buildUrl("users/roles/list"), true),
+                GETNETWORK(buildUrl("settings"), true),
             ]);
+            logScreenApi("SharedSettingsUsersScreen", "users", usersRes, buildUrl("users", "limit=200"));
+            logScreenApi("SharedSettingsUsersScreen", "users/roles/list", rolesRes, buildUrl("users/roles/list"));
+            logScreenApi("SharedSettingsUsersScreen", "settings", settingsRes, buildUrl("settings"));
             if (isApiSuccess(rolesRes)) {
                 const roles = extractApiList(rolesRes);
                 if (roles.length) setApiRoles(roles);
@@ -476,6 +481,7 @@ const SharedSettingsUsersScreen = () => {
             },
             true
         );
+        logScreenApi("SharedSettingsUsersScreen", "auth/register", res, buildUrl("auth/register"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Create user failed"));
             return;
@@ -483,11 +489,12 @@ const SharedSettingsUsersScreen = () => {
         if (form.approveImmediately) {
             const userId = res?.data?.id || res?.id;
             if (userId) {
-                await PUTNETWORK(
+                const _logRes19883 = await PUTNETWORK(
                     buildUrl(`users/${userId}`),
                     { status: "active", role_id: Number(form.role_id) },
                     true
                 );
+                logScreenApi("SharedSettingsUsersScreen", "users/${userId}", _logRes19883, buildUrl(`users/${userId}`));
             }
         }
         setShowModal(false);
@@ -501,6 +508,7 @@ const SharedSettingsUsersScreen = () => {
                 text: "Deactivate",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`users/${item.id}`), true);
+                    logScreenApi("SharedSettingsUsersScreen", "users/${item.id}", res, buildUrl(`users/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Deactivate failed"));
                         return;
@@ -519,6 +527,7 @@ const SharedSettingsUsersScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`users/${item.id}`), true);
+                    logScreenApi("SharedSettingsUsersScreen", "users/${item.id}", res, buildUrl(`users/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

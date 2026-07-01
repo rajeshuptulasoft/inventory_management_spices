@@ -27,6 +27,7 @@ import {
     getApiMessage,
     isApiSuccess,
     mapSalesOrderRow,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -356,6 +357,7 @@ const SharedOrderManagementScreen = () => {
     const loadData = useCallback(async () => {
         try {
             const res = await GETNETWORK(buildUrl("fmcg/sales-orders", "limit=100"), true);
+            logScreenApi("SharedOrderManagementScreen", "fmcg/sales-orders", res, buildUrl("fmcg/sales-orders", "limit=100"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load orders"));
                 return;
@@ -415,6 +417,7 @@ const SharedOrderManagementScreen = () => {
             items,
         };
         const res = await POSTNETWORK(buildUrl("fmcg/sales-orders"), payload, true);
+        logScreenApi("SharedOrderManagementScreen", "fmcg/sales-orders", res, buildUrl("fmcg/sales-orders"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Create failed"));
             return;
@@ -425,6 +428,7 @@ const SharedOrderManagementScreen = () => {
 
     const handleApprove = async (item) => {
         const res = await POSTNETWORK(buildUrl(`fmcg/sales-orders/${item.id}/approve`), {}, true);
+        logScreenApi("SharedOrderManagementScreen", "fmcg/sales-orders/${item.id}/approve", res, buildUrl(`fmcg/sales-orders/${item.id}/approve`));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Approve failed"));
             return;
@@ -434,6 +438,7 @@ const SharedOrderManagementScreen = () => {
 
     const handleDeliver = async (item) => {
         const res = await POSTNETWORK(buildUrl(`fmcg/sales-orders/${item.id}/deliver`), {}, true);
+        logScreenApi("SharedOrderManagementScreen", "fmcg/sales-orders/${item.id}/deliver", res, buildUrl(`fmcg/sales-orders/${item.id}/deliver`));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Deliver failed"));
             return;
@@ -449,6 +454,7 @@ const SharedOrderManagementScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await POSTNETWORK(buildUrl(`fmcg/sales-orders/${item.id}/cancel`), {}, true);
+                    logScreenApi("SharedOrderManagementScreen", "fmcg/sales-orders/${item.id}/cancel", res, buildUrl(`fmcg/sales-orders/${item.id}/cancel`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Cancel failed"));
                         return;

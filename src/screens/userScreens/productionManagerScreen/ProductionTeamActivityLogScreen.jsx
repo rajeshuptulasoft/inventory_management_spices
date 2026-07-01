@@ -18,6 +18,7 @@ import {
     GETNETWORK,
     extractApiList,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR } from "../../../constant/color";
@@ -120,9 +121,10 @@ const ProductionTeamActivityLogScreen = () => {
 
         const [usersRes, notificationsRes] = await Promise.all([
             GETNETWORK(buildUrl("users", "limit=200"), true),
-            GETNETWORK(buildUrl("notifications", "limit=50"), true),
+            GETNETWORK(buildUrl("notifications/mine", "limit=50"), true),
         ]);
-
+        logScreenApi("ProductionTeamActivityLogScreen", "users", usersRes, buildUrl("users", "limit=200"));
+        logScreenApi("ProductionTeamActivityLogScreen", "notifications/mine", notificationsRes, buildUrl("notifications/mine", "limit=50"));
         const users = isApiSuccess(usersRes) ? extractApiList(usersRes) : [];
         const notifications = isApiSuccess(notificationsRes) ? extractApiList(notificationsRes) : [];
 

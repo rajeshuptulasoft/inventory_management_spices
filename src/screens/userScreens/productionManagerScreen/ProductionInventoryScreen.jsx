@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
-import { buildUrl, GETNETWORK, extractApiList, isApiSuccess } from "../../../utils/Network";
+import { buildUrl, GETNETWORK, extractApiList, isApiSuccess,
+    logScreenApi,
+} from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR } from "../../../constant/color";
 
@@ -14,6 +16,7 @@ const ProductionInventoryScreen = () => {
 
     const loadData = useCallback(async () => {
         const res = await GETNETWORK(buildUrl("products", "limit=100"), true);
+        logScreenApi("ProductionInventoryScreen", "products", res, buildUrl("products", "limit=100"));
         if (isApiSuccess(res)) {
             const list = extractApiList(res).flatMap((p) =>
                 (p.variants || []).map((v) => ({

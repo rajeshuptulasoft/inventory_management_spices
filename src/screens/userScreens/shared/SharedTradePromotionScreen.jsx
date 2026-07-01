@@ -32,6 +32,7 @@ import {
     isApiSuccess,
     fmtInr,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -296,13 +297,18 @@ const SharedTradePromotionScreen = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await GETNETWORK(buildUrl("fmcg/schemes"), true);
-            if (!isApiSuccess(res)) {
-                Alert.alert("Error", getApiMessage(res, "Failed to load schemes"));
+            const [schemesRes, offersRes] = await Promise.all([
+                GETNETWORK(buildUrl("fmcg/schemes"), true),
+                GETNETWORK(buildUrl("customers/offers/list"), true),
+            ]);
+            logScreenApi("SharedTradePromotionScreen", "fmcg/schemes", schemesRes, buildUrl("fmcg/schemes"));
+            logScreenApi("SharedTradePromotionScreen", "customers/offers/list", offersRes, buildUrl("customers/offers/list"));
+            if (!isApiSuccess(schemesRes)) {
+                Alert.alert("Error", getApiMessage(schemesRes, "Failed to load schemes"));
                 setSchemes([]);
                 return;
             }
-            setSchemes(extractApiList(res).map(mapSchemeToUi));
+            setSchemes(extractApiList(schemesRes).map(mapSchemeToUi));
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -392,9 +398,14 @@ const SharedTradePromotionScreen = () => {
             products: [],
             distributors: [],
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`fmcg/schemes/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("fmcg/schemes"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`fmcg/schemes/${form.id}`), payload, true);
+            logScreenApi("SharedTradePromotionScreen", "fmcg/schemes/update", res, buildUrl(`fmcg/schemes/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("fmcg/schemes"), payload, true);
+            logScreenApi("SharedTradePromotionScreen", "fmcg/schemes/create", res, buildUrl("fmcg/schemes"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -411,6 +422,7 @@ const SharedTradePromotionScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`fmcg/schemes/${item.id}`), true);
+                    logScreenApi("SharedTradePromotionScreen", "fmcg/schemes/${item.id}", res, buildUrl(`fmcg/schemes/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

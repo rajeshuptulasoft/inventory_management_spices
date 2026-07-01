@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     Image,
     ScrollView,
-    Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LOGOUT, LOGO } from "../constant/imagePath";
@@ -21,17 +20,8 @@ const CustomDrawerNavigation = ({
     onClose,
 }) => {
     const handleLogoutPress = () => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Logout",
-                style: "destructive",
-                onPress: () => {
-                    onClose?.();
-                    onLogout?.();
-                },
-            },
-        ]);
+        onClose?.();
+        onLogout?.();
     };
 
     return (

@@ -5,14 +5,15 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FinanceHeader from "../../../components/commonComponents/FinanceHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
 import { getObjByKey } from "../../../utils/Storage";
-import { buildUrl, GETNETWORK, extractApiData, isApiSuccess } from "../../../utils/Network";
+import { buildUrl, GETNETWORK, extractApiData, isApiSuccess,
+    logScreenApi,
+} from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { WHITE, BRANDCOLOR } from "../../../constant/color";
 
@@ -47,6 +48,7 @@ const MachineProfileScreen = () => {
         setLoading(true);
         const stored = await getObjByKey("loginResponse");
         const res = await GETNETWORK(buildUrl("auth/profile"), true);
+        logScreenApi("MachineProfileScreen", "auth/profile", res, buildUrl("auth/profile"));
         const data = isApiSuccess(res) ? extractApiData(res) : stored?.user || stored;
         const name = data?.name || data?.full_name || stored?.name || "";
         setProfile({
@@ -67,10 +69,7 @@ const MachineProfileScreen = () => {
     }, [loadProfile]);
 
     const handleLogout = () => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Logout", style: "destructive", onPress: () => navigation.onLogout?.() },
-        ]);
+        navigation.onLogout?.();
     };
 
     return (

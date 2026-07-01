@@ -17,6 +17,7 @@ import {
     extractApiData,
     GETNETWORK,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -154,9 +155,14 @@ const MachineDashboardScreen = () => {
 
     const fetchDashboard = useCallback(async () => {
         try {
-            const res = await GETNETWORK(buildUrl("dashboard/production"), true);
-            if (isApiSuccess(res)) {
-                const stats = extractApiData(res) || {};
+            const [productionRes, mobileRes] = await Promise.all([
+                GETNETWORK(buildUrl("dashboard/production"), true),
+                GETNETWORK(buildUrl("mobile/dashboard"), true),
+            ]);
+            logScreenApi("MachineDashboardScreen", "dashboard/production", productionRes, buildUrl("dashboard/production"));
+            logScreenApi("MachineDashboardScreen", "mobile/dashboard", mobileRes, buildUrl("mobile/dashboard"));
+            if (isApiSuccess(productionRes)) {
+                const stats = extractApiData(productionRes) || {};
                 setSummaryData(buildSummaryData(stats));
                 setActiveBatches(mapBatches(stats));
             }

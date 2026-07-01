@@ -19,6 +19,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -103,6 +104,7 @@ const MarketingBestPlansScreen = () => {
         else setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("fmcg/schemes"), true);
+            logScreenApi("MarketingBestPlansScreen", "fmcg/schemes", res, buildUrl("fmcg/schemes"));
             if (!isApiSuccess(res)) {
                 setLoadError(getApiMessage(res, "Failed to load schemes"));
                 setPlans([]);

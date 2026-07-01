@@ -30,6 +30,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -302,6 +303,7 @@ const SharedBestPlanScreen = () => {
         setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("fmcg/schemes"), true);
+            logScreenApi("SharedBestPlanScreen", "fmcg/schemes", res, buildUrl("fmcg/schemes"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load beat plans"));
                 setBeatPlans([]);
@@ -410,6 +412,7 @@ const SharedBestPlanScreen = () => {
             distributors: [],
         };
         const res = await POSTNETWORK(buildUrl("fmcg/schemes"), payload, true);
+        logScreenApi("SharedBestPlanScreen", "fmcg/schemes", res, buildUrl("fmcg/schemes"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -426,6 +429,7 @@ const SharedBestPlanScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`fmcg/schemes/${item.id}`), true);
+                    logScreenApi("SharedBestPlanScreen", "fmcg/schemes/${item.id}", res, buildUrl(`fmcg/schemes/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

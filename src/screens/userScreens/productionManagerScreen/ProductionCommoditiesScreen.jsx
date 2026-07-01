@@ -26,6 +26,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -59,6 +60,7 @@ const ProductionCommoditiesScreen = () => {
 
     const loadData = useCallback(async () => {
         const res = await GETNETWORK(buildUrl("fmcg/commodities"), true);
+        logScreenApi("ProductionCommoditiesScreen", "fmcg/commodities", res, buildUrl("fmcg/commodities"));
         if (isApiSuccess(res)) {
             setRows(extractApiList(res).map(mapRow));
         }
@@ -111,10 +113,14 @@ const ProductionCommoditiesScreen = () => {
         };
         if (!editId) payload.current_stock = Number(currentStock) || 0;
 
-        const res = editId
-            ? await PUTNETWORK(buildUrl(`fmcg/commodities/${editId}`), payload, true)
-            : await POSTNETWORK(buildUrl("fmcg/commodities"), payload, true);
-
+        let res;
+        if (editId) {
+            res = await PUTNETWORK(buildUrl(`fmcg/commodities/${editId}`), payload, true);
+            logScreenApi("ProductionCommoditiesScreen", "fmcg/commodities/update", res, buildUrl(`fmcg/commodities/${editId}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("fmcg/commodities"), payload, true);
+            logScreenApi("ProductionCommoditiesScreen", "fmcg/commodities/create", res, buildUrl("fmcg/commodities"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res));
             return;

@@ -23,6 +23,7 @@ import {
     getApiMessage,
     isApiSuccess,
     fmtInr,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -107,13 +108,18 @@ const SharedChannelMgmtScreen = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await GETNETWORK(buildUrl("fmcg/territories"), true);
-            if (!isApiSuccess(res)) {
-                Alert.alert("Error", getApiMessage(res, "Failed to load territories"));
+            const [territoriesRes, summaryRes] = await Promise.all([
+                GETNETWORK(buildUrl("fmcg/territories"), true),
+                GETNETWORK(buildUrl("fmcg/channels/summary"), true),
+            ]);
+            logScreenApi("SharedChannelMgmtScreen", "fmcg/territories", territoriesRes, buildUrl("fmcg/territories"));
+            logScreenApi("SharedChannelMgmtScreen", "fmcg/channels/summary", summaryRes, buildUrl("fmcg/channels/summary"));
+            if (!isApiSuccess(territoriesRes)) {
+                Alert.alert("Error", getApiMessage(territoriesRes, "Failed to load territories"));
                 setChannels([]);
                 return;
             }
-            setChannels(extractApiList(res).map(mapTerritoryToChannel));
+            setChannels(extractApiList(territoriesRes).map(mapTerritoryToChannel));
         } finally {
             setLoading(false);
             setRefreshing(false);

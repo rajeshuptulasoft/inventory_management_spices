@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Ale
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MyHeader } from "../../../components/commonComponents/MyHeader";
 import { useFinanceNavigation } from "../../../navigations/AdminNavigationContext";
-import { buildUrl, GETNETWORK, extractApiList, isApiSuccess } from "../../../utils/Network";
+import { buildUrl, GETNETWORK, extractApiList, isApiSuccess,
+    logScreenApi,
+} from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR } from "../../../constant/color";
 
@@ -14,6 +16,7 @@ const ProductionBatchScreen = () => {
 
     const loadData = useCallback(async () => {
         const res = await GETNETWORK(buildUrl("batches", "expiring=true"), true);
+        logScreenApi("ProductionBatchScreen", "batches", res, buildUrl("batches", "expiring=true"));
         if (isApiSuccess(res)) {
             setBatches(extractApiList(res));
         }

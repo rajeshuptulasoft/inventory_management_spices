@@ -1,6 +1,84 @@
-import { Alert, Linking, PermissionsAndroid, Platform } from "react-native";
+import {
+    Alert,
+    Linking,
+    PermissionsAndroid,
+    Platform,
+    TurboModuleRegistry,
+} from "react-native";
 import Geolocation from "@react-native-community/geolocation";
 import { requestUserPermission } from "./PushNotification";
+
+const LOCATION_ENABLER_MODULE = "AndroidLocationEnabler";
+
+const getLocationEnabler = () => {
+    if (Platform.OS !== "android") {
+        return null;
+    }
+
+    // Package loads TurboModuleRegistry.getEnforcing at import time — check first.
+    if (!TurboModuleRegistry.get(LOCATION_ENABLER_MODULE)) {
+        return null;
+    }
+
+    try {
+        return require("react-native-android-location-enabler");
+    } catch {
+        return null;
+    }
+};
+
+const openAndroidLocationSettings = () =>
+    Linking.openURL(
+        "intent:#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end"
+    ).catch(() => Linking.openSettings());
+
+const promptEnableLocationFallback = () =>
+    new Promise((resolve) => {
+        Alert.alert(
+            "Improve location accuracy?",
+            "For a better experience, turn on device location, which uses Google's location service.",
+            [
+                { text: "No thanks", style: "cancel", onPress: () => resolve(false) },
+                {
+                    text: "Turn on",
+                    onPress: () => {
+                        openAndroidLocationSettings().finally(() => resolve(true));
+                    },
+                },
+            ],
+            { cancelable: false }
+        );
+    });
+
+/**
+ * Shows the Google Play Services location dialog (Turn on / No thanks)
+ * when device location or location accuracy is disabled.
+ */
+export const ensureDeviceLocationEnabled = async () => {
+    if (Platform.OS !== "android") {
+        return true;
+    }
+
+    const locationEnabler = getLocationEnabler();
+    if (!locationEnabler) {
+        await promptEnableLocationFallback();
+        return await requestAndroidLocationPermissions();
+    }
+
+    try {
+        const { isLocationEnabled, promptForEnableLocationIfNeeded } = locationEnabler;
+
+        await promptForEnableLocationIfNeeded({
+            interval: 10000,
+            waitForAccurate: true,
+        });
+
+        await requestAndroidLocationPermissions();
+        return await isLocationEnabled();
+    } catch {
+        return false;
+    }
+};
 
 export const requestAndroidLocationPermissions = async () => {
     if (Platform.OS !== "android") {
@@ -46,7 +124,6 @@ export const requestAndroidNotificationPermission = async () => {
 };
 
 export const requestAppPermissions = async () => {
-    await requestAndroidLocationPermissions();
     await requestAndroidNotificationPermission();
     await requestUserPermission();
 };

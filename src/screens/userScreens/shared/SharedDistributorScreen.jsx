@@ -29,6 +29,7 @@ import {
     getApiMessage,
     isApiSuccess,
     mapFmcgPartnerRow,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -356,6 +357,7 @@ const SharedDistributorScreen = () => {
     const loadData = useCallback(async () => {
         try {
             const res = await GETNETWORK(buildUrl("fmcg/distributors", "limit=200"), true);
+            logScreenApi("SharedDistributorScreen", "fmcg/distributors", res, buildUrl("fmcg/distributors", "limit=200"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load distributors"));
                 return;
@@ -396,9 +398,14 @@ const SharedDistributorScreen = () => {
             credit_limit: Number(form.creditLimit) || 0,
             status: String(form.status || "active").toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`fmcg/distributors/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("fmcg/distributors"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`fmcg/distributors/${form.id}`), payload, true);
+            logScreenApi("SharedDistributorScreen", "fmcg/distributors/update", res, buildUrl(`fmcg/distributors/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("fmcg/distributors"), payload, true);
+            logScreenApi("SharedDistributorScreen", "fmcg/distributors/create", res, buildUrl("fmcg/distributors"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -439,6 +446,7 @@ const SharedDistributorScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`fmcg/distributors/${item.id}`), true);
+                    logScreenApi("SharedDistributorScreen", "fmcg/distributors/${item.id}", res, buildUrl(`fmcg/distributors/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

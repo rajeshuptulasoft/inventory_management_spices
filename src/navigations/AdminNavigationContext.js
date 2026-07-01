@@ -17,6 +17,8 @@ export const useNavigation = () => {
             navigate: () => {},
             goBack: () => {},
             onLogout: () => {},
+            showSuccess: () => {},
+            showError: () => {},
         };
     }
     return navigation;

@@ -29,6 +29,7 @@ import {
     getApiMessage,
     isApiSuccess,
     mapFmcgPartnerRow,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -356,6 +357,7 @@ const SharedRetailerScreen = () => {
     const loadData = useCallback(async () => {
         try {
             const res = await GETNETWORK(buildUrl("customers"), true);
+            logScreenApi("SharedRetailerScreen", "customers", res, buildUrl("customers"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load retailers"));
                 return;
@@ -396,9 +398,14 @@ const SharedRetailerScreen = () => {
             state: form.state || undefined,
             status: String(form.status || "active").toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`customers/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("customers"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`customers/${form.id}`), payload, true);
+            logScreenApi("SharedRetailerScreen", "customers/update", res, buildUrl(`customers/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("customers"), payload, true);
+            logScreenApi("SharedRetailerScreen", "customers/create", res, buildUrl("customers"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -439,6 +446,7 @@ const SharedRetailerScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`customers/${item.id}`), true);
+                    logScreenApi("SharedRetailerScreen", "customers/${item.id}", res, buildUrl(`customers/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

@@ -19,6 +19,7 @@ import {
     extractApiList,
     getApiMessage,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -35,6 +36,7 @@ const ProductionStockEntryScreen = () => {
 
     const loadVariants = useCallback(async () => {
         const res = await GETNETWORK(buildUrl("products", "limit=100"), true);
+        logScreenApi("ProductionStockEntryScreen", "products", res, buildUrl("products", "limit=100"));
         if (isApiSuccess(res)) {
             const list = extractApiList(res).flatMap((p) =>
                 (p.variants || []).map((v) => ({
@@ -64,6 +66,7 @@ const ProductionStockEntryScreen = () => {
         };
         const endpoint = type === "in" ? "inventory/stock-in" : "inventory/stock-out";
         const res = await POSTNETWORK(buildUrl(endpoint), payload, true);
+        logScreenApi("ProductionStockEntryScreen", "buildUrl(endpoint)", res, buildUrl(endpoint));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res));
             return;

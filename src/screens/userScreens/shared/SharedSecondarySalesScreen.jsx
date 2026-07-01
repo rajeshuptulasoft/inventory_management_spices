@@ -29,6 +29,7 @@ import {
     isApiSuccess,
     mapSalesOrderRow,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -334,13 +335,20 @@ const SharedSecondarySalesScreen = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await GETNETWORK(buildUrl("fmcg/sales-orders", "limit=100"), true);
-            if (!isApiSuccess(res)) {
-                Alert.alert("Error", getApiMessage(res, "Failed to load sales orders"));
+            const [ordersRes, secondaryRes] = await Promise.all([
+                GETNETWORK(buildUrl("fmcg/sales-orders", "limit=100"), true),
+                GETNETWORK(buildUrl("fmcg/secondary-sales"), true),
+            ]);
+            logScreenApi("SharedSecondarySalesScreen", "fmcg/sales-orders", ordersRes, buildUrl("fmcg/sales-orders", "limit=100"));
+            logScreenApi("SharedSecondarySalesScreen", "fmcg/secondary-sales", secondaryRes, buildUrl("fmcg/secondary-sales"));
+            if (!isApiSuccess(ordersRes)) {
+                Alert.alert("Error", getApiMessage(ordersRes, "Failed to load sales orders"));
                 setSales([]);
                 return;
             }
-            setSales(extractApiList(res).map(mapOrderToSalesUi).filter(matchesSalesType));
+            const secondaryRows = isApiSuccess(secondaryRes) ? extractApiList(secondaryRes) : [];
+            const merged = [...extractApiList(ordersRes), ...secondaryRows];
+            setSales(merged.map(mapOrderToSalesUi).filter(matchesSalesType));
         } finally {
             setLoading(false);
             setRefreshing(false);

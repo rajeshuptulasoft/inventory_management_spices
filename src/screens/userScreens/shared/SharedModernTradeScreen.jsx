@@ -31,6 +31,7 @@ import {
     isApiSuccess,
     fmtInr,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -313,6 +314,7 @@ const SharedModernTradeScreen = () => {
         setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("customers"), true);
+            logScreenApi("SharedModernTradeScreen", "customers", res, buildUrl("customers"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load customers"));
                 setChains([]);
@@ -407,9 +409,14 @@ const SharedModernTradeScreen = () => {
             state: "",
             status: form.status.toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`customers/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("customers"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`customers/${form.id}`), payload, true);
+            logScreenApi("SharedModernTradeScreen", "customers/update", res, buildUrl(`customers/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("customers"), payload, true);
+            logScreenApi("SharedModernTradeScreen", "customers/create", res, buildUrl("customers"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;

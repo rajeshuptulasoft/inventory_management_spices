@@ -29,6 +29,7 @@ import {
     getApiMessage,
     isApiSuccess,
     mapFmcgPartnerRow,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -356,6 +357,7 @@ const SharedDealerScreen = () => {
     const loadData = useCallback(async () => {
         try {
             const res = await GETNETWORK(buildUrl("fmcg/dealers", "limit=200"), true);
+            logScreenApi("SharedDealerScreen", "fmcg/dealers", res, buildUrl("fmcg/dealers", "limit=200"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load dealers"));
                 return;
@@ -396,9 +398,14 @@ const SharedDealerScreen = () => {
             credit_limit: Number(form.creditLimit) || 0,
             status: String(form.status || "active").toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`fmcg/dealers/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("fmcg/dealers"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`fmcg/dealers/${form.id}`), payload, true);
+            logScreenApi("SharedDealerScreen", "fmcg/dealers/update", res, buildUrl(`fmcg/dealers/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("fmcg/dealers"), payload, true);
+            logScreenApi("SharedDealerScreen", "fmcg/dealers/create", res, buildUrl("fmcg/dealers"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -439,6 +446,7 @@ const SharedDealerScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`fmcg/dealers/${item.id}`), true);
+                    logScreenApi("SharedDealerScreen", "fmcg/dealers/${item.id}", res, buildUrl(`fmcg/dealers/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

@@ -19,6 +19,7 @@ import {
     fmtInr,
     GETNETWORK,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -177,9 +178,16 @@ const MarketingDashboardScreen = () => {
 
     const fetchDashboard = useCallback(async () => {
         try {
-            const res = await GETNETWORK(buildUrl("dashboard/marketing"), true);
-            if (isApiSuccess(res)) {
-                setKpiData(buildKpiData(extractApiData(res) || {}));
+            const [marketingRes, salesRes, analyticsRes] = await Promise.all([
+                GETNETWORK(buildUrl("dashboard/marketing"), true),
+                GETNETWORK(buildUrl("fmcg/dashboard/sales"), true),
+                GETNETWORK(buildUrl("fmcg/dashboard/analytics"), true),
+            ]);
+            logScreenApi("MarketingDashboardScreen", "dashboard/marketing", marketingRes, buildUrl("dashboard/marketing"));
+            logScreenApi("MarketingDashboardScreen", "fmcg/dashboard/sales", salesRes, buildUrl("fmcg/dashboard/sales"));
+            logScreenApi("MarketingDashboardScreen", "fmcg/dashboard/analytics", analyticsRes, buildUrl("fmcg/dashboard/analytics"));
+            if (isApiSuccess(marketingRes)) {
+                setKpiData(buildKpiData(extractApiData(marketingRes) || {}));
             }
         } finally {
             setRefreshing(false);

@@ -30,6 +30,7 @@ import {
     isApiSuccess,
     fmtInr,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -46,12 +47,12 @@ const AMBER = "#D97706";
 const CLAIM_TYPES = ["Scheme", "Damage", "Expiry", "Trade"];
 const CLAIM_STATUSES = ["Pending", "Approved", "Rejected"];
 
-const mapPaymentToClaim = (row) => ({
+const mapClaimRow = (row) => ({
     id: String(row.id),
-    claimId: row.payment_number || row.claim_number || `PAY-${row.id}`,
+    claimId: row.claim_number || row.payment_number || `CLM-${row.id}`,
     partyId: String(row.party_id ?? ""),
     type: capitalizeStatus(row.claim_type || row.payment_type || "scheme"),
-    date: row.payment_date || row.date || "",
+    date: row.claim_date || row.payment_date || row.date || "",
     rawAmount: String(row.amount ?? 0),
     amount: fmtInr(row.amount),
     remarks: row.notes || row.remarks || "",
@@ -310,13 +311,14 @@ const SharedClaimScreen = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await GETNETWORK(buildUrl("fmcg/payments"), true);
+            const res = await GETNETWORK(buildUrl("fmcg/claims"), true);
+            logScreenApi("SharedClaimScreen", "fmcg/claims", res, buildUrl("fmcg/claims"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load claims"));
                 setClaims([]);
                 return;
             }
-            setClaims(extractApiList(res).map(mapPaymentToClaim));
+            setClaims(extractApiList(res).map(mapClaimRow));
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -397,18 +399,18 @@ const SharedClaimScreen = () => {
             return;
         }
         const res = await POSTNETWORK(
-            buildUrl("fmcg/payments"),
+            buildUrl("fmcg/claims"),
             {
-                party_type: "distributor",
                 party_id: Number(form.partyId),
+                claim_type: form.type.toLowerCase(),
                 amount: Number(form.amount),
-                payment_mode: "bank",
-                payment_date: form.date || new Date().toISOString().slice(0, 10),
-                reference_no: form.claimNo,
+                claim_date: form.date || new Date().toISOString().slice(0, 10),
+                claim_number: form.claimNo,
                 notes: form.remarks || `${form.type} claim`,
             },
             true
         );
+        logScreenApi("SharedClaimScreen", "fmcg/claims", res, buildUrl("fmcg/claims"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;

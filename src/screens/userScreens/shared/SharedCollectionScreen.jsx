@@ -29,6 +29,7 @@ import {
     getApiMessage,
     isApiSuccess,
     mapCollectionRow,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -340,6 +341,8 @@ const SharedCollectionScreen = () => {
                 GETNETWORK(buildUrl("fmcg/collections"), true),
                 GETNETWORK(buildUrl("fmcg/distributors", "limit=200"), true),
             ]);
+            logScreenApi("SharedCollectionScreen", "fmcg/collections", collectionsRes, buildUrl("fmcg/collections"));
+            logScreenApi("SharedCollectionScreen", "fmcg/distributors", distributorsRes, buildUrl("fmcg/distributors", "limit=200"));
             if (!isApiSuccess(collectionsRes)) {
                 Alert.alert("Error", getApiMessage(collectionsRes, "Failed to load collections"));
                 return;
@@ -398,9 +401,14 @@ const SharedCollectionScreen = () => {
             status: String(form.status || "confirmed").toLowerCase(),
             notes: form.reference?.trim() || undefined,
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`fmcg/collections/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("fmcg/collections"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`fmcg/collections/${form.id}`), payload, true);
+            logScreenApi("SharedCollectionScreen", "fmcg/collections/update", res, buildUrl(`fmcg/collections/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("fmcg/collections"), payload, true);
+            logScreenApi("SharedCollectionScreen", "fmcg/collections/create", res, buildUrl("fmcg/collections"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -417,6 +425,7 @@ const SharedCollectionScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`fmcg/collections/${item.id}`), true);
+                    logScreenApi("SharedCollectionScreen", "fmcg/collections/${item.id}", res, buildUrl(`fmcg/collections/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

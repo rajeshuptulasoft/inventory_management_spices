@@ -31,6 +31,7 @@ import {
     isApiSuccess,
     fmtInr,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -449,6 +450,8 @@ const SharedFinanceAccountsScreen = () => {
                 GETNETWORK(buildUrl("invoices"), true),
                 GETNETWORK(buildUrl("customers"), true),
             ]);
+            logScreenApi("SharedFinanceAccountsScreen", "invoices", invRes, buildUrl("invoices"));
+            logScreenApi("SharedFinanceAccountsScreen", "customers", custRes, buildUrl("customers"));
             const invRows = isApiSuccess(invRes) ? extractApiList(invRes).map(mapInvoiceToUi) : [];
             const custRows = isApiSuccess(custRes) ? extractApiList(custRes) : [];
             if (!isApiSuccess(invRes)) {
@@ -633,6 +636,7 @@ const SharedFinanceAccountsScreen = () => {
             },
             true
         );
+        logScreenApi("SharedFinanceAccountsScreen", "invoices", res, buildUrl("invoices"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Failed to create invoice"));
             return;

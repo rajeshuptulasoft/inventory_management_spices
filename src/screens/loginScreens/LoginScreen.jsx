@@ -14,6 +14,7 @@ import {
     Alert,
 } from "react-native";
 import { useDispatch } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
 
 import { BLACK, WHITE, BRANDCOLOR } from "../../constant/color";
 import { UBUNTUBOLD, FIRASANS } from "../../constant/fontPath";
@@ -21,9 +22,37 @@ import { TextInputComponent } from "../../components/commonComponents/TextInputC
 import { USERID, PASSWORD, HIDE, VIEW, LOGO } from "../../constant/imagePath";
 import { HEIGHT, WIDTH } from "../../constant/config";
 import { loginUser } from "../../redux/actions/auth";
-import { POSTNETWORK } from "../../utils/Network";
-import { extractApiData, getApiMessage, isApiSuccess, mapApiRoleToAppRole, extractLoginPayload, resolveApiRoleName } from "../../utils/Network";
+import { POSTNETWORK, logScreenApi, logLoginResponse } from "../../utils/Network";
+import {
+    getApiMessage,
+    isApiSuccess,
+    extractLoginPayload,
+    extractApiData,
+    resolveApiRoleName,
+    resolveLoginToken,
+    resolveRefreshToken,
+    resolveLoginAppRole,
+    resolveProfileUser,
+    GETNETWORK_WITH_TOKEN,
+} from "../../utils/Network";
 import { buildUrl } from "../../utils/Network";
+
+const resolveLoginUser = (payload) => {
+    if (!payload || typeof payload !== "object") return null;
+    if (payload.user && typeof payload.user === "object") return payload.user;
+    if (payload.email || payload.role || payload.role_name || payload.role_id) return payload;
+    return null;
+};
+
+const fetchProfileForLogin = async (token) => {
+    const profileRes = await GETNETWORK_WITH_TOKEN(buildUrl("auth/profile"), token);
+    logScreenApi("LoginScreen", "auth/profile", profileRes, buildUrl("auth/profile"));
+    if (isApiSuccess(profileRes)) {
+        const raw = extractApiData(profileRes) || profileRes?.data || null;
+        return resolveProfileUser(raw);
+    }
+    return null;
+};
 
 const SCREEN_BG = "#F5F7FA";
 const TEXT_SECONDARY = "#6B7280";
@@ -32,6 +61,7 @@ const BORDER_COLOR = "#E5E7EB";
 
 const LoginScreen = () => {
     const dispatch = useDispatch();
+    const navigation = useNavigation();
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -62,10 +92,11 @@ const LoginScreen = () => {
 
         try {
             setSubmitting(true);
-            const res = await POSTNETWORK(buildUrl("v1/auth/login"), {
-                email,
-                password: pass,
-            });
+            const credentials = { email, password: pass };
+
+            const res = await POSTNETWORK(buildUrl("auth/login"), credentials);
+            logScreenApi("LoginScreen", "auth/login", res, buildUrl("auth/login"));
+            logLoginResponse(res);
 
             if (!isApiSuccess(res)) {
                 Alert.alert("Sign In", getApiMessage(res, "Invalid User ID or password."));
@@ -73,20 +104,38 @@ const LoginScreen = () => {
             }
 
             const payload = extractLoginPayload(res);
-            const user = payload?.user || payload;
-            const token = payload?.accessToken || payload?.token || user?.accessToken || user?.token;
-            const refreshToken = payload?.refreshToken || user?.refreshToken;
-            const apiRole = resolveApiRoleName(user);
-            const role = mapApiRoleToAppRole(apiRole, email);
-            const isSubAdmin = email.includes("subadmin") || user?.is_sub_admin === true;
+            let user = resolveLoginUser(payload);
+            let token = resolveLoginToken(payload || {}, user || {}, res);
+            let refreshToken = resolveRefreshToken(payload || {}, user || {}, res);
+            let apiRole = resolveApiRoleName(user || {});
+            let role = resolveLoginAppRole(user || {}, email, payload || {});
 
-            if (!token || !role) {
+            if (token) {
+                const profile = await fetchProfileForLogin(token);
+                if (profile) {
+                    user = profile;
+                    apiRole = resolveApiRoleName(profile);
+                    role = resolveLoginAppRole(profile, email, profile);
+                }
+            }
+
+            if (!token) {
                 Alert.alert(
                     "Sign In",
-                    "Your account role is not supported on mobile. Contact administrator."
+                    "Login succeeded but no session token was returned. Please try again or contact administrator."
                 );
                 return;
             }
+
+            if (!role) {
+                Alert.alert(
+                    "Sign In",
+                    `Your account role (${apiRole || "unknown"}) is not supported on mobile. Contact administrator.`
+                );
+                return;
+            }
+
+            const isSubAdmin = email.includes("subadmin") || user?.is_sub_admin === true;
 
             await dispatch(
                 loginUser({
@@ -101,6 +150,11 @@ const LoginScreen = () => {
                     user,
                 })
             );
+
+            navigation.reset({
+                index: 0,
+                routes: [{ name: "Main", params: { role } }],
+            });
         } catch {
             Alert.alert("Sign In", "Unable to connect. Please check your network and try again.");
         } finally {

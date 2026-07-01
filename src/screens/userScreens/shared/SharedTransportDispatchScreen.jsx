@@ -30,6 +30,7 @@ import {
     isApiSuccess,
     mapSalesOrderRow,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -314,6 +315,7 @@ const SharedTransportDispatchScreen = () => {
         setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("fmcg/sales-orders", "limit=100"), true);
+            logScreenApi("SharedTransportDispatchScreen", "fmcg/sales-orders", res, buildUrl("fmcg/sales-orders", "limit=100"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load dispatches"));
                 setDispatches([]);
@@ -412,6 +414,7 @@ const SharedTransportDispatchScreen = () => {
                 text: "Deliver",
                 onPress: async () => {
                     const res = await POSTNETWORK(buildUrl(`fmcg/sales-orders/${item.id}/deliver`), {}, true);
+                    logScreenApi("SharedTransportDispatchScreen", "fmcg/sales-orders/${item.id}/deliver", res, buildUrl(`fmcg/sales-orders/${item.id}/deliver`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Deliver failed"));
                         return;

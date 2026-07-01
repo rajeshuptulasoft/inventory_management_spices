@@ -19,6 +19,7 @@ import {
     fmtInr,
     GETNETWORK,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -172,9 +173,16 @@ const FinanceDashboardScreen = () => {
 
     const fetchDashboard = useCallback(async () => {
         try {
-            const res = await GETNETWORK(buildUrl("fmcg/dashboard/enterprise"), true);
-            if (isApiSuccess(res)) {
-                const payload = extractApiData(res) || {};
+            const [enterpriseRes, adminRes, accountsRes] = await Promise.all([
+                GETNETWORK(buildUrl("fmcg/dashboard/enterprise"), true),
+                GETNETWORK(buildUrl("dashboard/admin"), true),
+                GETNETWORK(buildUrl("fmcg/dashboard/accounts"), true),
+            ]);
+            logScreenApi("FinanceDashboardScreen", "fmcg/dashboard/enterprise", enterpriseRes, buildUrl("fmcg/dashboard/enterprise"));
+            logScreenApi("FinanceDashboardScreen", "dashboard/admin", adminRes, buildUrl("dashboard/admin"));
+            logScreenApi("FinanceDashboardScreen", "fmcg/dashboard/accounts", accountsRes, buildUrl("fmcg/dashboard/accounts"));
+            if (isApiSuccess(enterpriseRes)) {
+                const payload = extractApiData(enterpriseRes) || {};
                 setKpiData(buildKpiData(payload.kpis || payload));
             }
         } finally {

@@ -29,6 +29,7 @@ import {
     extractApiList,
     getApiMessage,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -196,6 +197,7 @@ const ShiftCategoriesScreen = () => {
         else setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("categories"), true);
+            logScreenApi("ShiftCategoriesScreen", "categories", res, buildUrl("categories"));
             if (!isApiSuccess(res)) {
                 setLoadError(getApiMessage(res, "Failed to load categories"));
                 setCategories([]);
@@ -264,9 +266,14 @@ const ShiftCategoriesScreen = () => {
 
     const handleSaveCategory = async (form) => {
         const payload = { code: form.code, name: form.name };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`categories/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("categories"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`categories/${form.id}`), payload, true);
+            logScreenApi("ShiftCategoriesScreen", "categories/update", res, buildUrl(`categories/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("categories"), payload, true);
+            logScreenApi("ShiftCategoriesScreen", "categories/create", res, buildUrl("categories"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -283,6 +290,7 @@ const ShiftCategoriesScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`categories/${item.id}`), true);
+                    logScreenApi("ShiftCategoriesScreen", "categories/${item.id}", res, buildUrl(`categories/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

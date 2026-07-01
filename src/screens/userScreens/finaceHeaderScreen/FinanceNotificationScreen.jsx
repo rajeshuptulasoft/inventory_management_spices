@@ -18,8 +18,12 @@ import {
     buildUrl,
     extractApiList,
     GETNETWORK,
+    PATCHNETWORK,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
+
+const SCREEN_NAME = "FinanceNotificationScreen";
 
 const TYPE_META = {
     low_stock: { icon: "📦", iconBg: "#FEE2E2" },
@@ -63,8 +67,8 @@ const TEXT_DARK = "#111827";
 const TEXT_MUTED = "#6B7280";
 const UNREAD_DOT = "#2563EB";
 
-const NotificationCard = ({ item }) => (
-    <TouchableOpacity activeOpacity={0.85} style={styles.card}>
+const NotificationCard = ({ item, onPress }) => (
+    <TouchableOpacity activeOpacity={0.85} style={styles.card} onPress={() => onPress?.(item)}>
         <View style={[styles.iconWrap, { backgroundColor: item.iconBg }]}>
             <Text style={styles.iconText}>{item.icon}</Text>
         </View>
@@ -88,7 +92,8 @@ const FinanceNotificationScreen = () => {
 
     const fetchNotifications = useCallback(async () => {
         try {
-            const res = await GETNETWORK(buildUrl("notifications", "limit=30"), true);
+            const res = await GETNETWORK(buildUrl("notifications/mine", "limit=30"), true);
+            logScreenApi(SCREEN_NAME, "notifications/mine", res, buildUrl("notifications/mine", "limit=30"));
             if (isApiSuccess(res)) {
                 setNotifications(extractApiList(res).map(mapNotificationRow));
             }
@@ -110,6 +115,17 @@ const FinanceNotificationScreen = () => {
         return () => sub.remove();
     }, [navigation]);
 
+    const markAsRead = useCallback(async (item) => {
+        if (!item?.unread) return;
+        const res = await PATCHNETWORK(buildUrl(`notifications/${item.id}/read`), {}, true);
+        logScreenApi(SCREEN_NAME, "notifications/read", res, buildUrl(`notifications/${item.id}/read`));
+        if (isApiSuccess(res)) {
+            setNotifications((prev) =>
+                prev.map((row) => (row.id === item.id ? { ...row, unread: false } : row))
+            );
+        }
+    }, []);
+
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchNotifications();
@@ -128,7 +144,9 @@ const FinanceNotificationScreen = () => {
                 <FlatList
                     data={notifications}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <NotificationCard item={item} />}
+                    renderItem={({ item }) => (
+                        <NotificationCard item={item} onPress={markAsRead} />
+                    )}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     refreshControl={

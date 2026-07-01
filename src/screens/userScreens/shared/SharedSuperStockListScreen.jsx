@@ -29,6 +29,7 @@ import {
     getApiMessage,
     isApiSuccess,
     mapFmcgPartnerRow,
+    logScreenApi,
 } from "../../../utils/Network";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../../constant/fontPath";
 import { BRANDCOLOR, WHITE } from "../../../constant/color";
@@ -356,6 +357,7 @@ const SharedSuperStockListScreen = () => {
     const loadData = useCallback(async () => {
         try {
             const res = await GETNETWORK(buildUrl("fmcg/wholesalers", "limit=200"), true);
+            logScreenApi("SharedSuperStockListScreen", "fmcg/wholesalers", res, buildUrl("fmcg/wholesalers", "limit=200"));
             if (!isApiSuccess(res)) {
                 Alert.alert("Error", getApiMessage(res, "Failed to load super stockists"));
                 return;
@@ -397,9 +399,14 @@ const SharedSuperStockListScreen = () => {
             channel_type: "wholesaler",
             status: String(form.status || "active").toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`fmcg/wholesalers/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("fmcg/wholesalers"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`fmcg/wholesalers/${form.id}`), payload, true);
+            logScreenApi("SharedSuperStockListScreen", "fmcg/wholesalers/update", res, buildUrl(`fmcg/wholesalers/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("fmcg/wholesalers"), payload, true);
+            logScreenApi("SharedSuperStockListScreen", "fmcg/wholesalers/create", res, buildUrl("fmcg/wholesalers"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -440,6 +447,7 @@ const SharedSuperStockListScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`fmcg/wholesalers/${item.id}`), true);
+                    logScreenApi("SharedSuperStockListScreen", "fmcg/wholesalers/${item.id}", res, buildUrl(`fmcg/wholesalers/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

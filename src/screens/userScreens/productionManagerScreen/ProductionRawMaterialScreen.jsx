@@ -28,6 +28,7 @@ import {
     getApiMessage,
     isApiSuccess,
     fmtInr,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -266,6 +267,7 @@ const ProductionRawMaterialScreen = () => {
         else setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("raw-materials"), true);
+            logScreenApi("ProductionRawMaterialScreen", "raw-materials", res, buildUrl("raw-materials"));
             if (!isApiSuccess(res)) {
                 setLoadError(getApiMessage(res, "Failed to load raw materials"));
                 setMaterials([]);
@@ -363,6 +365,7 @@ const ProductionRawMaterialScreen = () => {
             },
             true
         );
+        logScreenApi("ProductionRawMaterialScreen", "raw-materials", res, buildUrl("raw-materials"));
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;

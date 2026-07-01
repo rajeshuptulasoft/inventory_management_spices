@@ -29,6 +29,7 @@ import {
     extractApiList,
     getApiMessage,
     isApiSuccess,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -192,6 +193,7 @@ const MarketingCategoriesScreen = () => {
         else setLoading(true);
         try {
             const res = await GETNETWORK(buildUrl("categories"), true);
+            logScreenApi("MarketingCategoriesScreen", "categories", res, buildUrl("categories"));
             if (!isApiSuccess(res)) {
                 setLoadError(getApiMessage(res, "Failed to load categories"));
                 setCategories([]);
@@ -270,9 +272,14 @@ const MarketingCategoriesScreen = () => {
 
     const handleSaveCategory = async (form) => {
         const payload = { code: form.code, name: form.name };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`categories/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("categories"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`categories/${form.id}`), payload, true);
+            logScreenApi("MarketingCategoriesScreen", "categories/update", res, buildUrl(`categories/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("categories"), payload, true);
+            logScreenApi("MarketingCategoriesScreen", "categories/create", res, buildUrl("categories"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;
@@ -289,6 +296,7 @@ const MarketingCategoriesScreen = () => {
                 style: "destructive",
                 onPress: async () => {
                     const res = await DELETENETWORK(buildUrl(`categories/${item.id}`), true);
+                    logScreenApi("MarketingCategoriesScreen", "categories/${item.id}", res, buildUrl(`categories/${item.id}`));
                     if (!isApiSuccess(res)) {
                         Alert.alert("Error", getApiMessage(res, "Delete failed"));
                         return;

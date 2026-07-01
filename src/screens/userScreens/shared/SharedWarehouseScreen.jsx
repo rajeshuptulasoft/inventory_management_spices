@@ -30,6 +30,7 @@ import {
     getApiMessage,
     isApiSuccess,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -314,6 +315,8 @@ const SharedWarehouseScreen = () => {
                 GETNETWORK(buildUrl("racks"), true),
                 GETNETWORK(buildUrl("racks/warehouses/list"), true),
             ]);
+            logScreenApi("SharedWarehouseScreen", "racks", racksRes, buildUrl("racks"));
+            logScreenApi("SharedWarehouseScreen", "racks/warehouses/list", whRes, buildUrl("racks/warehouses/list"));
             if (!isApiSuccess(racksRes)) {
                 Alert.alert("Error", getApiMessage(racksRes, "Failed to load racks"));
                 setWarehouses([]);
@@ -415,9 +418,14 @@ const SharedWarehouseScreen = () => {
             capacity: Number(String(form.capacity).replace(/[^\d]/g, "") || 0),
             status: form.status.toLowerCase(),
         };
-        const res = form.id
-            ? await PUTNETWORK(buildUrl(`racks/${form.id}`), payload, true)
-            : await POSTNETWORK(buildUrl("racks"), payload, true);
+        let res;
+        if (form.id) {
+            res = await PUTNETWORK(buildUrl(`racks/${form.id}`), payload, true);
+            logScreenApi("SharedWarehouseScreen", "racks/update", res, buildUrl(`racks/${form.id}`));
+        } else {
+            res = await POSTNETWORK(buildUrl("racks"), payload, true);
+            logScreenApi("SharedWarehouseScreen", "racks/create", res, buildUrl("racks"));
+        }
         if (!isApiSuccess(res)) {
             Alert.alert("Error", getApiMessage(res, "Save failed"));
             return;

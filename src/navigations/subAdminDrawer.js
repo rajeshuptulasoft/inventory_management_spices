@@ -90,6 +90,7 @@ export const ROLE_BASE_DRAWER_KEYS = {
         "Batches",
         "Inventory",
     ],
+    qc: ["Notification", "Batches", "ProductionRuns", "RawMaterial", "Commodities", "Inventory"],
 };
 
 export const SUB_ADMIN_SCREEN_MAP = {
@@ -122,6 +123,10 @@ export const normalizeDrawerRole = (role) => {
     if (key === "shiftsupervisor" || key === "shift_supervisor") return "shift";
     if (key === "machineoperator" || key === "machine_operator" || key === "machine") return "machine";
     if (key === "productionmanager" || key === "production_manager") return "production";
+    if (key === "qcinspector" || key === "qc_inspector" || key === "quality_inspector") return "qc";
+    if (["admin", "distributor", "dealer", "wholesaler", "retailer", "asm", "so", "vehicle", "transport", "nsm", "rsm", "store", "packing"].includes(key)) {
+        return key;
+    }
     return key;
 };
 

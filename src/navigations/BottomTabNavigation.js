@@ -4,8 +4,9 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Alert,
     Dimensions,
+    BackHandler,
+    Platform,
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -15,8 +16,11 @@ import { AppNavigationProvider } from "./AdminNavigationContext";
 import { logoutUser } from "../redux/actions/auth";
 import { getDrawerConfig } from "./Drawer";
 import CustomDrawerNavigation from "./CustomDrawerNavigation";
-import { getObjByKey } from "../utils/Storage";
+import { getLoginSession } from "../utils/RoleStorage";
 import { isSubAdminSession } from "./subAdminDrawer";
+import { MyAlert } from "../components/commonComponents/MyAlert";
+import { useAppToast } from "../hooks/useAppToast";
+import { useStackBackHandler } from "../hooks/useStackBackHandler";
 
 import FinanceDashboardScreen from "../screens/userScreens/finaceHeaderScreen/FinanceDashboardScreen";
 import FinanceTeamActivityLogScreen from "../screens/userScreens/finaceHeaderScreen/FinanceTeamActivityLogScreen";
@@ -42,6 +46,70 @@ import ProductionDashboardScreen from "../screens/userScreens/productionManagerS
 import ProductionTeamActivityLogScreen from "../screens/userScreens/productionManagerScreen/ProductionTeamActivityLogScreen";
 import ProductionAttendanceScreen from "../screens/userScreens/productionManagerScreen/ProductionAttendanceScreen";
 import ProductionProfileScreen from "../screens/userScreens/productionManagerScreen/ProductionProfileScreen";
+
+import QcDashboardScreen from "../screens/userScreens/qcInspectorScreen/QcDashboardScreen";
+import QcCategoriesScreen from "../screens/userScreens/qcInspectorScreen/QcCategoriesScreen";
+import QcAttendanceScreen from "../screens/userScreens/qcInspectorScreen/QcAttendanceScreen";
+import QcProfileScreen from "../screens/userScreens/qcInspectorScreen/QcProfileScreen";
+
+import StoreDashboardScreen from "../screens/userScreens/storeKeeperScreen/StoreDashboardScreen";
+import StoreCategoriesScreen from "../screens/userScreens/storeKeeperScreen/StoreCategoriesScreen";
+import StoreAttendanceScreen from "../screens/userScreens/storeKeeperScreen/StoreAttendanceScreen";
+import StoreProfileScreen from "../screens/userScreens/storeKeeperScreen/StoreProfileScreen";
+
+import PackingDashboardScreen from "../screens/userScreens/packingSupervisorScreen/PackingDashboardScreen";
+import PackingCategoriesScreen from "../screens/userScreens/packingSupervisorScreen/PackingCategoriesScreen";
+import PackingAttendanceScreen from "../screens/userScreens/packingSupervisorScreen/PackingAttendanceScreen";
+import PackingProfileScreen from "../screens/userScreens/packingSupervisorScreen/PackingProfileScreen";
+
+import NsmDashboardScreen from "../screens/userScreens/NSMScreen/NsmDashboardScreen";
+import NsmTeamActivityLogScreen from "../screens/userScreens/NSMScreen/NsmTeamActivityLogScreen";
+import NsmAttendanceScreen from "../screens/userScreens/NSMScreen/NsmAttendanceScreen";
+import NsmProfileScreen from "../screens/userScreens/NSMScreen/NsmProfileScreen";
+
+import RsmDashboardScreen from "../screens/userScreens/RSMScreen/RsmDashboardScreen";
+import RsmCategoriesScreen from "../screens/userScreens/RSMScreen/RsmCategoriesScreen";
+import RsmAttendanceScreen from "../screens/userScreens/RSMScreen/RsmAttendanceScreen";
+import RsmProfileScreen from "../screens/userScreens/RSMScreen/RsmProfileScreen";
+
+import AdminDashboardScreen from "../screens/userScreens/adminScreen/AdminDashboardScreen";
+import AdminAttendanceScreen from "../screens/userScreens/adminScreen/AdminAttendanceScreen";
+import AdminProductsScreen from "../screens/userScreens/adminScreen/AdminProductsScreen";
+import AdminProfileScreen from "../screens/userScreens/adminScreen/AdminProfileScreen";
+
+import DistributorDashboardScreen from "../screens/userScreens/distributorScreen/DistributorDashboardScreen";
+import DistributorAttendanceScreen from "../screens/userScreens/distributorScreen/DistributorAttendanceScreen";
+import DistributorProfileScreen from "../screens/userScreens/distributorScreen/DistributorProfileScreen";
+
+import DealerDashboardScreen from "../screens/userScreens/dealerScreen/DealerDashboardScreen";
+import DealerAttendanceScreen from "../screens/userScreens/dealerScreen/DealerAttendanceScreen";
+import DealerProfileScreen from "../screens/userScreens/dealerScreen/DealerProfileScreen";
+
+import WholesalerDashboardScreen from "../screens/userScreens/wholesalerScreen/WholesalerDashboardScreen";
+import WholesalerAttendanceScreen from "../screens/userScreens/wholesalerScreen/WholesalerAttendanceScreen";
+import WholesalerProfileScreen from "../screens/userScreens/wholesalerScreen/WholesalerProfileScreen";
+
+import RetailerDashboardScreen from "../screens/userScreens/retailerScreen/RetailerDashboardScreen";
+import RetailerRetailerScreen from "../screens/userScreens/retailerScreen/RetailerRetailerScreen";
+import RetailerAttendanceScreen from "../screens/userScreens/retailerScreen/RetailerAttendanceScreen";
+import RetailerProfileScreen from "../screens/userScreens/retailerScreen/RetailerProfileScreen";
+import RetailerNotificationScreen from "../screens/userScreens/retailerScreen/RetailerNotificationScreen";
+
+import AsmDashboardScreen from "../screens/userScreens/ASMScreen/AsmDashboardScreen";
+import AsmCategoriesScreen from "../screens/userScreens/ASMScreen/AsmCategoriesScreen";
+import AsmAttendanceScreen from "../screens/userScreens/ASMScreen/AsmAttendanceScreen";
+import AsmProfileScreen from "../screens/userScreens/ASMScreen/AsmProfileScreen";
+
+import SoDashboardScreen from "../screens/userScreens/SOScreen/SoDashboardScreen";
+import SoCategoriesScreen from "../screens/userScreens/SOScreen/SoCategoriesScreen";
+import SoAttendanceScreen from "../screens/userScreens/SOScreen/SoAttendanceScreen";
+import SoProfileScreen from "../screens/userScreens/SOScreen/SoProfileScreen";
+
+import VehicleDashboardScreen from "../screens/userScreens/vechileScreen/VehicleDashboardScreen";
+import VehicleTransportDispatchScreen from "../screens/userScreens/vechileScreen/VehicleTransportDispatchScreen";
+import VehicleAttendanceScreen from "../screens/userScreens/vechileScreen/VehicleAttendanceScreen";
+import VehicleProfileScreen from "../screens/userScreens/vechileScreen/VehicleProfileScreen";
+import VehicleNotificationScreen from "../screens/userScreens/vechileScreen/VehicleNotificationScreen";
 
 const ACTIVE_TAB_BG = "#E8F8EF";
 const ACTIVE_TAB_COLOR = "#05A845";
@@ -71,14 +139,90 @@ const SHIFT_TABS = [
 
 const MACHINE_TABS = [
     { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
-    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
     { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
     { key: "Profile", label: "Profile", icon: ProfileIcon },
 ];
 
 const PRODUCTION_TABS = [
     { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
     { key: "TeamActivityLog", label: "Team Activity Log", icon: ActivityIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const QC_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const STORE_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const PACKING_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const NSM_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "TeamActivityLog", label: "Team Activity Log", icon: ActivityIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const RSM_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const CHANNEL_SIMPLE_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const RETAILER_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Retailer", label: "Retailer", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const ADMIN_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Products", label: "Products", icon: CategoriesIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const ASM_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const SO_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "Categories", label: "Categories", icon: CategoriesIcon },
+    { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
+    { key: "Profile", label: "Profile", icon: ProfileIcon },
+];
+
+const VEHICLE_TABS = [
+    { key: "Dashboard", label: "Dashboard", icon: DashboardIcon },
+    { key: "TransportDispatch", label: "Transport & Dispatch", icon: ActivityIcon },
     { key: "Attendance", label: "Attendance", icon: AttendanceIcon },
     { key: "Profile", label: "Profile", icon: ProfileIcon },
 ];
@@ -116,6 +260,100 @@ const PRODUCTION_SCREEN_MAP = {
     TeamActivityLog: ProductionTeamActivityLogScreen,
     Attendance: ProductionAttendanceScreen,
     Profile: ProductionProfileScreen,
+};
+
+const QC_SCREEN_MAP = {
+    Dashboard: QcDashboardScreen,
+    Categories: QcCategoriesScreen,
+    Attendance: QcAttendanceScreen,
+    Profile: QcProfileScreen,
+};
+
+const STORE_SCREEN_MAP = {
+    Dashboard: StoreDashboardScreen,
+    Categories: StoreCategoriesScreen,
+    Attendance: StoreAttendanceScreen,
+    Profile: StoreProfileScreen,
+};
+
+const PACKING_SCREEN_MAP = {
+    Dashboard: PackingDashboardScreen,
+    Categories: PackingCategoriesScreen,
+    Attendance: PackingAttendanceScreen,
+    Profile: PackingProfileScreen,
+};
+
+const NSM_SCREEN_MAP = {
+    Dashboard: NsmDashboardScreen,
+    TeamActivityLog: NsmTeamActivityLogScreen,
+    Attendance: NsmAttendanceScreen,
+    Profile: NsmProfileScreen,
+};
+
+const RSM_SCREEN_MAP = {
+    Dashboard: RsmDashboardScreen,
+    Categories: RsmCategoriesScreen,
+    Attendance: RsmAttendanceScreen,
+    Profile: RsmProfileScreen,
+};
+
+const ADMIN_SCREEN_MAP = {
+    Dashboard: AdminDashboardScreen,
+    Attendance: AdminAttendanceScreen,
+    Products: AdminProductsScreen,
+    Profile: AdminProfileScreen,
+};
+
+const DISTRIBUTOR_SCREEN_MAP = {
+    Dashboard: DistributorDashboardScreen,
+    Attendance: DistributorAttendanceScreen,
+    Profile: DistributorProfileScreen,
+};
+
+const DEALER_SCREEN_MAP = {
+    Dashboard: DealerDashboardScreen,
+    Attendance: DealerAttendanceScreen,
+    Profile: DealerProfileScreen,
+};
+
+const WHOLESALER_SCREEN_MAP = {
+    Dashboard: WholesalerDashboardScreen,
+    Attendance: WholesalerAttendanceScreen,
+    Profile: WholesalerProfileScreen,
+};
+
+const RETAILER_SCREEN_MAP = {
+    Dashboard: RetailerDashboardScreen,
+    Retailer: RetailerRetailerScreen,
+    Attendance: RetailerAttendanceScreen,
+    Profile: RetailerProfileScreen,
+};
+
+const ASM_SCREEN_MAP = {
+    Dashboard: AsmDashboardScreen,
+    Categories: AsmCategoriesScreen,
+    Attendance: AsmAttendanceScreen,
+    Profile: AsmProfileScreen,
+};
+
+const SO_SCREEN_MAP = {
+    Dashboard: SoDashboardScreen,
+    Categories: SoCategoriesScreen,
+    Attendance: SoAttendanceScreen,
+    Profile: SoProfileScreen,
+};
+
+const VEHICLE_SCREEN_MAP = {
+    Dashboard: VehicleDashboardScreen,
+    TransportDispatch: VehicleTransportDispatchScreen,
+    Attendance: VehicleAttendanceScreen,
+    Profile: VehicleProfileScreen,
+};
+
+const NO_DRAWER_STACK_MAP = {
+    retailer: { Notification: RetailerNotificationScreen },
+    vehicle: { Notification: VehicleNotificationScreen },
+    transport: { Notification: VehicleNotificationScreen },
 };
 
 function DashboardIcon({ color }) {
@@ -213,45 +451,127 @@ const BottomTabNavigation = ({ role = "finance" }) => {
     const isShift = role === "shift";
     const isMachine = role === "machine";
     const isProduction = role === "production";
-    const hasDrawer = isFinance || isMarketing || isShift || isMachine || isProduction;
+    const isQc = role === "qc";
+    const isStore = role === "store";
+    const isPacking = role === "packing";
+    const isNsm = role === "nsm";
+    const isRsm = role === "rsm";
+    const isAdmin = role === "admin";
+    const isDistributor = role === "distributor";
+    const isDealer = role === "dealer";
+    const isWholesaler = role === "wholesaler";
+    const isRetailer = role === "retailer";
+    const isAsm = role === "asm";
+    const isSo = role === "so";
+    const isVehicle = role === "vehicle" || role === "transport";
+    const hasDrawer =
+        isFinance ||
+        isMarketing ||
+        isShift ||
+        isMachine ||
+        isProduction ||
+        isQc ||
+        isStore ||
+        isPacking ||
+        isNsm ||
+        isRsm ||
+        isAdmin ||
+        isDistributor ||
+        isDealer ||
+        isWholesaler ||
+        isAsm ||
+        isSo;
 
-    const tabs = isMarketing
-          ? MARKETING_TABS
-          : isProduction
-            ? PRODUCTION_TABS
-          : isShift
-            ? SHIFT_TABS
-            : isMachine
-              ? MACHINE_TABS
-              : FINANCE_TABS;
-    const screenMap = isMarketing
-          ? MARKETING_SCREEN_MAP
-          : isProduction
-            ? PRODUCTION_SCREEN_MAP
-          : isShift
-            ? SHIFT_SCREEN_MAP
-            : isMachine
-              ? MACHINE_SCREEN_MAP
-              : FINANCE_SCREEN_MAP;
+    const tabs = isVehicle
+        ? VEHICLE_TABS
+        : isRetailer
+          ? RETAILER_TABS
+          : isSo
+            ? SO_TABS
+            : isAsm
+              ? ASM_TABS
+              : isRsm
+                ? RSM_TABS
+                : isDistributor || isDealer || isWholesaler
+                  ? CHANNEL_SIMPLE_TABS
+                  : isAdmin
+                    ? ADMIN_TABS
+                    : isNsm
+                      ? NSM_TABS
+                      : isPacking
+                        ? PACKING_TABS
+                        : isStore
+                          ? STORE_TABS
+                          : isMarketing
+                            ? MARKETING_TABS
+                            : isQc
+                              ? QC_TABS
+                              : isProduction
+                                ? PRODUCTION_TABS
+                                : isShift
+                                  ? SHIFT_TABS
+                                  : isMachine
+                                    ? MACHINE_TABS
+                                    : FINANCE_TABS;
+
+    const screenMap = isVehicle
+        ? VEHICLE_SCREEN_MAP
+        : isRetailer
+          ? RETAILER_SCREEN_MAP
+          : isSo
+            ? SO_SCREEN_MAP
+            : isAsm
+              ? ASM_SCREEN_MAP
+              : isRsm
+                ? RSM_SCREEN_MAP
+                : isDistributor
+                  ? DISTRIBUTOR_SCREEN_MAP
+                  : isDealer
+                    ? DEALER_SCREEN_MAP
+                    : isWholesaler
+                      ? WHOLESALER_SCREEN_MAP
+                      : isAdmin
+                        ? ADMIN_SCREEN_MAP
+                        : isNsm
+                          ? NSM_SCREEN_MAP
+                          : isPacking
+                            ? PACKING_SCREEN_MAP
+                            : isStore
+                              ? STORE_SCREEN_MAP
+                              : isMarketing
+                                ? MARKETING_SCREEN_MAP
+                                : isQc
+                                  ? QC_SCREEN_MAP
+                                  : isProduction
+                                    ? PRODUCTION_SCREEN_MAP
+                                    : isShift
+                                      ? SHIFT_SCREEN_MAP
+                                      : isMachine
+                                        ? MACHINE_SCREEN_MAP
+                                        : FINANCE_SCREEN_MAP;
 
     const [activeTab, setActiveTab] = useState("Dashboard");
     const [stackRoute, setStackRoute] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [loginSession, setLoginSession] = useState(null);
+    const [logoutVisible, setLogoutVisible] = useState(false);
+    const { showSuccess, showError, Toast } = useAppToast();
 
     const refreshLoginSession = useCallback(async () => {
-        const loginResponse = await getObjByKey("loginResponse");
+        const loginResponse = await getLoginSession();
         setLoginSession(loginResponse || null);
         return loginResponse;
     }, []);
 
-    useEffect(() => {
+  useEffect(() => {
         refreshLoginSession();
     }, [refreshLoginSession]);
 
     const isSubAdmin = isSubAdminSession(loginSession);
     const drawerConfig = hasDrawer ? getDrawerConfig(role, isSubAdmin) : null;
-    const stackScreenMap = drawerConfig?.stackMap || {};
+    const stackScreenMap = hasDrawer
+        ? drawerConfig?.stackMap || {}
+        : NO_DRAWER_STACK_MAP[role] || {};
     const drawerUserName = loginSession?.name || drawerConfig?.userName || "";
     const drawerUserRole = drawerConfig?.isSubAdmin
         ? `${drawerConfig.userRole} • Sub Admin`
@@ -261,20 +581,23 @@ const BottomTabNavigation = ({ role = "finance" }) => {
 
     const closeDrawer = useCallback(() => setDrawerOpen(false), []);
     const openDrawer = useCallback(async () => {
+        if (!hasDrawer) return;
         await refreshLoginSession();
         setDrawerOpen(true);
-    }, [refreshLoginSession]);
+    }, [hasDrawer, refreshLoginSession]);
+
+    const handleGoBack = useCallback(() => setStackRoute(null), []);
+    useStackBackHandler(handleGoBack, Boolean(stackRoute));
+
+    const confirmLogout = useCallback(() => {
+        setLogoutVisible(false);
+        dispatch(logoutUser());
+        showSuccess("Logged out successfully");
+    }, [dispatch, showSuccess]);
 
     const handleLogout = useCallback(() => {
-        Alert.alert("Logout", "Are you sure you want to logout?", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Logout",
-                style: "destructive",
-                onPress: () => dispatch(logoutUser()),
-            },
-        ]);
-    }, [dispatch]);
+        setLogoutVisible(true);
+    }, []);
 
     const navigation = useMemo(
         () => ({
@@ -284,16 +607,18 @@ const BottomTabNavigation = ({ role = "finance" }) => {
                 closeDrawer();
                 if (hasDrawer) {
                     setStackRoute(name);
-                    return;
-                }
+        return;
+      }
                 if (name === "Notification") {
                     setStackRoute("Notification");
                 }
             },
-            goBack: () => setStackRoute(null),
+            goBack: handleGoBack,
             onLogout: handleLogout,
+            showSuccess,
+            showError,
         }),
-        [hasDrawer, openDrawer, closeDrawer, handleLogout]
+        [hasDrawer, openDrawer, closeDrawer, handleLogout, handleGoBack, showSuccess, showError]
     );
 
     const StackScreen = stackRoute ? stackScreenMap[stackRoute] : null;
@@ -307,8 +632,27 @@ const BottomTabNavigation = ({ role = "finance" }) => {
                 tabs={tabs}
                 activeTab={activeTab}
                 onTabPress={setActiveTab}
-                compactLabel={isFinance || isMarketing || isShift || isMachine || isProduction}
-            />
+                compactLabel={
+                    isFinance ||
+                    isMarketing ||
+                    isShift ||
+                    isMachine ||
+                    isProduction ||
+                    isQc ||
+                    isStore ||
+                    isPacking ||
+                    isNsm ||
+        isRsm ||
+                    isAdmin ||
+                    isDistributor ||
+                    isDealer ||
+                    isWholesaler ||
+                    isRetailer ||
+                    isAsm ||
+                    isSo ||
+                    isVehicle
+                }
+          />
         </>
     );
 
@@ -318,7 +662,7 @@ const BottomTabNavigation = ({ role = "finance" }) => {
                 <View style={styles.root}>
                     {StackScreen ? <StackScreen /> : renderTabContent()}
 
-                    {drawerOpen ? (
+                    {drawerOpen && drawerConfig ? (
                         <View style={styles.drawerOverlay}>
                             <View style={styles.drawerPanel}>
                                 <CustomDrawerNavigation
@@ -337,10 +681,21 @@ const BottomTabNavigation = ({ role = "finance" }) => {
                             />
                         </View>
                     ) : null}
+                    <Toast />
+                    <MyAlert
+                        visible={logoutVisible}
+                        title="Logout"
+                        message="Are you sure you want to logout?"
+                        textLeft="Cancel"
+                        textRight="Logout"
+                        onPressLeft={() => setLogoutVisible(false)}
+                        onPressRight={confirmLogout}
+                        onRequestClose={() => setLogoutVisible(false)}
+                    />
                 </View>
             </SafeAreaProvider>
         </AppNavigationProvider>
-    );
+  );
 };
 
 export default BottomTabNavigation;
@@ -454,8 +809,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#F3F4F6",
     },
-    screenContainer: {
-        flex: 1,
+  screenContainer: {
+    flex: 1,
     },
     tabBarSafeArea: {
         backgroundColor: WHITE,
@@ -469,12 +824,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         paddingTop: 8,
         paddingBottom: 6,
-        backgroundColor: WHITE,
+    backgroundColor: WHITE,
     },
     tabItem: {
         flex: 1,
         alignItems: "center",
-        justifyContent: "center",
+    justifyContent: "center",
         paddingVertical: 6,
         borderRadius: 12,
         gap: 3,
@@ -521,5 +876,5 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 8,
-    },
+  },
 });

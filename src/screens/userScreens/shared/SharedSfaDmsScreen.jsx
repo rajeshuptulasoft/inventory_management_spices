@@ -24,11 +24,14 @@ import { BRANDCOLOR, WHITE } from "../../../constant/color";
 import {
     buildUrl,
     GETNETWORK,
+    POSTNETWORK,
     extractApiList,
+    extractApiData,
     getApiMessage,
     isApiSuccess,
     fmtInr,
     capitalizeStatus,
+    logScreenApi,
 } from "../../../utils/Network";
 
 const SCREEN_BG = "#F3F4F6";
@@ -49,14 +52,14 @@ const TABS = [
 
 const VISIT_TYPES = ["Outlet", "Distributor", "Wholesaler", "Dealer"];
 
-const mapCustomerToVisit = (row) => ({
+const mapApiVisitToUi = (row) => ({
     id: String(row.id),
-    date: row.updated_at?.slice?.(0, 10) || row.created_at?.slice?.(0, 10) || "—",
-    productive: row.status === "active" ? "Yes" : "No",
-    outlet: row.name || "",
-    type: capitalizeStatus(row.customer_type || "outlet"),
-    order: fmtInr(row.outstanding ?? 0),
-    gps: [row.city, row.state].filter(Boolean).join(", ") || "—",
+    date: row.visit_date?.slice?.(0, 10) || row.created_at?.slice?.(0, 10) || "—",
+    productive: row.is_productive || row.productive ? "Yes" : "No",
+    outlet: row.party_name || row.outlet_name || row.customer_name || `Party #${row.party_id ?? ""}`,
+    type: capitalizeStatus(row.visit_type || row.type || "outlet"),
+    order: fmtInr(row.order_amount ?? row.amount ?? 0),
+    gps: row.location || [row.latitude, row.longitude].filter(Boolean).join(", ") || "—",
     _raw: row,
 });
 
@@ -294,7 +297,7 @@ const SharedSfaDmsScreen = () => {
     const navigation = useFinanceNavigation();
     const [activeTab, setActiveTab] = useState("visits");
     const [visits, setVisits] = useState([]);
-    const [liveTeam] = useState([]);
+    const [liveTeam, setLiveTeam] = useState([]);
     const [search, setSearch] = useState("");
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -304,13 +307,35 @@ const SharedSfaDmsScreen = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await GETNETWORK(buildUrl("customers"), true);
-            if (!isApiSuccess(res)) {
-                Alert.alert("Error", getApiMessage(res, "Failed to load visits"));
+            const [visitsRes, routesRes, dashboardRes] = await Promise.all([
+                GETNETWORK(buildUrl("fmcg/visits"), true),
+                GETNETWORK(buildUrl("fmcg/routes"), true),
+                GETNETWORK(buildUrl("mobile/dashboard"), true),
+            ]);
+            logScreenApi("SharedSfaDmsScreen", "fmcg/visits", visitsRes, buildUrl("fmcg/visits"));
+            logScreenApi("SharedSfaDmsScreen", "fmcg/routes", routesRes, buildUrl("fmcg/routes"));
+            logScreenApi("SharedSfaDmsScreen", "mobile/dashboard", dashboardRes, buildUrl("mobile/dashboard"));
+
+            if (isApiSuccess(visitsRes)) {
+                setVisits(extractApiList(visitsRes).map(mapApiVisitToUi));
+            } else {
                 setVisits([]);
-                return;
             }
-            setVisits(extractApiList(res).map(mapCustomerToVisit));
+
+            if (isApiSuccess(dashboardRes)) {
+                const team = extractApiList(dashboardRes)?.liveTeam || extractApiData(dashboardRes)?.live_team;
+                if (Array.isArray(team)) {
+                    setLiveTeam(
+                        team.map((row, index) => ({
+                            id: String(row.id ?? index),
+                            salesOfficer: row.name || row.officer_name || "—",
+                            role: row.role || row.designation || "—",
+                            lastLocation: row.last_location || row.location || "—",
+                            status: capitalizeStatus(row.status || "active"),
+                        }))
+                    );
+                }
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -423,19 +448,24 @@ const SharedSfaDmsScreen = () => {
         return rankings.filter((item) => item.officer.toLowerCase().includes(query));
     }, [search, rankings]);
 
-    const handleSaveVisit = (form) => {
-        const newVisit = {
-            id: String(Date.now()),
-            date: form.visitDate,
-            outlet: `Party #${form.partyId}`,
-            type: form.visitType,
-            productive: "No",
-            order: "₹0",
-            gps: "—",
-            notes: form.notes,
-        };
-        setVisits((prev) => [newVisit, ...prev]);
+    const handleSaveVisit = async (form) => {
+        const res = await POSTNETWORK(
+            buildUrl("fmcg/visits"),
+            {
+                party_id: Number(form.partyId),
+                visit_date: form.visitDate,
+                visit_type: form.visitType.toLowerCase(),
+                notes: form.notes || "",
+            },
+            true
+        );
+        logScreenApi("SharedSfaDmsScreen", "fmcg/visits/create", res, buildUrl("fmcg/visits"));
+        if (!isApiSuccess(res)) {
+            Alert.alert("Error", getApiMessage(res, "Failed to schedule visit"));
+            return;
+        }
         setShowModal(false);
+        loadData();
     };
 
     const listData =

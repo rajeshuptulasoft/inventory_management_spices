@@ -9,13 +9,19 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch } from "react-redux";
 import { LOGO } from "../../constant/imagePath";
 import { FIRASANS, FIRASANSSEMIBOLD, UBUNTUBOLD } from "../../constant/fontPath";
 import { WHITE } from "../../constant/color";
+import { ensureDeviceLocationEnabled } from "../../utils/AppPermissions";
+import { getToken, getTokenByKey, AUTH_ROLE_KEY, getLoginSession } from "../../utils/RoleStorage";
+import { checkuserToken } from "../../redux/actions/auth";
 
 const BRAND_GREEN = "#05A845";
+const SPLASH_DURATION_MS = 3200;
 
 const SplashScreen = ({ navigation }) => {
+    const dispatch = useDispatch();
     const progress = useRef(new Animated.Value(0)).current;
     const logoOpacity = useRef(new Animated.Value(0)).current;
     const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -40,12 +46,43 @@ const SplashScreen = ({ navigation }) => {
             }),
         ]).start();
 
-        const timer = setTimeout(() => {
-            navigation.replace("Login");
-        }, 3200);
+        let mounted = true;
 
-        return () => clearTimeout(timer);
-    }, [navigation, progress, logoOpacity, contentOpacity]);
+        const boot = async () => {
+            const splashStart = Date.now();
+
+            if (Platform.OS === "android") {
+                await ensureDeviceLocationEnabled();
+            }
+
+            let nextRoute = "Login";
+            const storedRole = await getTokenByKey(AUTH_ROLE_KEY);
+            const session = await getLoginSession();
+            const storedToken = (await getToken(storedRole || session?.role)) || session?.token;
+
+            if (storedToken && (storedRole || session?.role)) {
+                const isValid = await dispatch(checkuserToken());
+                if (mounted && isValid) {
+                    nextRoute = "Main";
+                }
+            }
+
+            const elapsed = Date.now() - splashStart;
+            const remaining = Math.max(0, SPLASH_DURATION_MS - elapsed);
+
+            setTimeout(() => {
+                if (mounted) {
+                    navigation.replace(nextRoute);
+                }
+            }, remaining);
+        };
+
+        boot();
+
+        return () => {
+            mounted = false;
+        };
+    }, [dispatch, navigation, progress, logoOpacity, contentOpacity]);
 
     const progressWidth = progress.interpolate({
         inputRange: [0, 1],

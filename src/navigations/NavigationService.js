@@ -11,3 +11,28 @@ export function navigate(name, params) {
     console.log('⚠️ Navigation not ready');
   }
 }
+
+export function resetToRoute(name, params) {
+  const runReset = () => {
+    if (!navigationRef.isReady()) {
+      return false;
+    }
+    navigationRef.reset({
+      index: 0,
+      routes: params ? [{ name, params }] : [{ name }],
+    });
+    return true;
+  };
+
+  if (runReset()) {
+    return;
+  }
+
+  let attempts = 0;
+  const timer = setInterval(() => {
+    attempts += 1;
+    if (runReset() || attempts >= 30) {
+      clearInterval(timer);
+    }
+  }, 100);
+}
